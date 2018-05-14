@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<meta name="description" content="ロボット作ってると，電源を切ってもデータを残したいということが結構あります．例えば，センサのキャリブレーション値とか．ArduinoとかだとEEPROMが内蔵されてるんで楽なんですが，STM32には無いんで，頑張って内蔵フラッシュにデータを書き込んでみようと思います．">
+<meta name="keywords" content="mbed,HAL,Nucleo,Flash,f401re">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Nucleo F401RE】内蔵フラッシュにデータを書き込んでみる（mbed越しに）">
+<meta property="og:url" content="http://umtkm.github.io/2017/12/19/nucleo-f401-flash-struct/index.html">
+<meta property="og:site_name" content="umtkmの忘備録">
+<meta property="og:description" content="ロボット作ってると，電源を切ってもデータを残したいということが結構あります．例えば，センサのキャリブレーション値とか．ArduinoとかだとEEPROMが内蔵されてるんで楽なんですが，STM32には無いんで，頑張って内蔵フラッシュにデータを書き込んでみようと思います．">
+<meta property="og:locale" content="ja">
+<meta property="og:image" content="http://umtkm.github.io/2017/12/19/nucleo-f401-flash-struct/f401_flash.png">
+<meta property="og:updated_time" content="2018-04-13T11:53:35.433Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="【Nucleo F401RE】内蔵フラッシュにデータを書き込んでみる（mbed越しに）">
+<meta name="twitter:description" content="ロボット作ってると，電源を切ってもデータを残したいということが結構あります．例えば，センサのキャリブレーション値とか．ArduinoとかだとEEPROMが内蔵されてるんで楽なんですが，STM32には無いんで，頑張って内蔵フラッシュにデータを書き込んでみようと思います．">
+<meta name="twitter:image" content="http://umtkm.github.io/2017/12/19/nucleo-f401-flash-struct/f401_flash.png">
+	<link rel="stylesheet" href="/css/styles.css">
+	
+	<title>【Nucleo F401RE】内蔵フラッシュにデータを書き込んでみる（mbed越しに） | umtkmの忘備録</title>
+</head>
+<body>
+	<header>
+	<div class="header-box">
+		<h1><a href="/">umtkmの忘備録</a></h1>
+
+		<div id="nav-drawer">
+
+		<input id="nav-checkbox" type="checkbox">
+		<label id="nav-open" for="nav-checkbox"><span></span></label>
+		<label id="nav-cover" for="nav-checkbox"><span></span></label>
+
+		<div id="nav-menu">
+			<div class="nav-menu-title-box">
+				<h1>Menu</h1>
+				<label id="nav-close" for="nav-checkbox"><span></span></label>
+			</div>
+			<!-- flexableSeach.js 使用時，formの上のdivのid属性が"search"だとヘッダの検索窓に送信した文字が残ってしまうため(さらに検索結果ページの検索窓に文字が表示されない)，idをつけないでおく -->
+			<!-- <div id="search" class="search-window"> -->
+			<div class="search-window">
+				<form method="GET" action="/search/index.html">
+					<dl class="search-box">
+					<input type="hidden" name="offset" value="0">
+						<dt>
+							<input type="text" name="search" value="" placeholder="Search..." class="fs-text fs-search">
+						</dt>
+						<dd>
+							<button><span></span></button>
+						</dd>
+					</dl>
+				</form>
+			</div>
+			<ul>
+				<li><a href="/">Home</a></li>
+				<li><a href="/categories">Category</a></li>
+				<li><a href="/tags">Tags</a></li>
+				<li><a href="/archives">Archives</a></li>
+			</ul>
+			<script src="/js/jquery-1.10.2.min.js"></script>
+			<script src="/flexibleSearch/mustache.js"></script>
+			<script src="/flexibleSearch/flexibleSearch.js"></script>
+			<script src="/flexibleSearch/flexibleSearch-config.js"></script>
+		</div>
+
+		</div>
+	</div>
+</header>
+	<div class="container">
+		<div class="blog-main">
+			
+
+
+<ol class="breadcrumb">
+	<li><a href="/">Home</a></li><li><a href="/categories/マイコン/">マイコン</a></li><li><a href="/categories/マイコン/STM32/">STM32</a></li><li>【Nucleo F401RE】内蔵フラッシュにデータを...</li>
+</ol>
+
+<article>
+
+	<h1>【Nucleo F401RE】内蔵フラッシュにデータを書き込んでみる（mbed越しに）</h1>
+	<div class="article-date">2017/12/19 22:31</div>
+
+	<p>　ロボット作ってると，電源を切ってもデータを残したいということが結構あります．例えば，センサのキャリブレーション値とか．ArduinoとかだとEEPROMが内蔵されてるんで楽なんですが，STM32には無いんで，頑張って内蔵フラッシュにデータを書き込んでみようと思います．</p>
+<a id="more"></a>
+<h2 id="環境"><a href="#環境" class="headerlink" title="環境"></a>環境</h2><p>　オフライン環境が前提です(リンカスクリプトをいじるので)．mbedのオンラインコンパイラからExportしただけでOKです．詳細はググってください．</p>
+<ul>
+<li>Nucelo F401RE</li>
+<li>macOS</li>
+<li>arm-none-eabi-gcc</li>
+</ul>
+<h2 id="セクタとページ"><a href="#セクタとページ" class="headerlink" title="セクタとページ"></a>セクタとページ</h2><p>　EEPROMなんかだと1byteごとにデータの書き換えができるんですが，内蔵フラッシュとなるとそうはいきません．STM32の内蔵フラッシュには，次の特徴があります．</p>
+<ul>
+<li>全てのbitが1の場所には，任意のデータを書き込める．</li>
+<li>1じゃないbitがある(=既に書き込み済み)場合，データは書き込めない．</li>
+<li>全てのbitを1にするには，セクタやページごと行う必要がある．</li>
+</ul>
+<p>はぁ？ って感じですね．要は，一度書き込んだあとは，セクタやページごとリセットしないと書き込めないってことです．なんて不便なんでしょう．</p>
+<p>　んで，セクタやページってなんじゃらほいって話なんですが，これは数k~数百kByteくらいのまとまりのことを指してます．セクタは数十k~数百kByteほどの比較的大きなまとまり，ページは数kバイトの比較的小さなまとまりとして使い分けられているようです．STM32F4では，いくつかのセクタに，STM32F3,F1ではたくさんのページに分割されています．</p>
+<h2 id="フラッシュのどこにデータを置くか"><a href="#フラッシュのどこにデータを置くか" class="headerlink" title="フラッシュのどこにデータを置くか"></a>フラッシュのどこにデータを置くか</h2><p>　さて，セクタとページについて大雑把に理解したところで，フラッシュのどこにデータを置くかを決めないと書き込みも読み込みもできません．具体的に，セクタが何個あって，サイズはどのくらいで，アドレスは何なのか知る必要がありますね．リファレンスマニュアルを読みましょう．<br><img src="/2017/12/19/nucleo-f401-flash-struct/f401_flash.png" title="F401のフラッシュ">(<a href="http://www.st.com/content/ccc/resource/technical/document/reference_manual/5d/b1/ef/b2/a1/66/40/80/DM00096844.pdf/files/DM00096844.pdf/jcr:content/translations/en.DM00096844.pdf" target="_blank" rel="noopener">RM0368 Reference manual STM32F401xB/C and STM32F401xD/E advanced ARM®-based 32-bit MCUs</a> より)<br>　僕の部屋に落ちてたF401の場合，どうやら7つのセクタに分割されていますね．16kByteのが4つと，64kBが1つ，128kBのが3つありますね．このセクタのうちのどれか一つにデータ保存用の領域を確保すればいいわけです．そんなたくさんのデータを置くわけじゃ無いんで本当は16kBのセクタを使いたいんですが，結構めんどくさいので一番お尻の128kBのセクタを使ってみようと思います(何も考えずにやるとプログラムが動作しなくなる…)．このセクタはアドレス0x08060000から始まってるみたいですね．</p>
+<h2 id="リンカスクリプトを編集する"><a href="#リンカスクリプトを編集する" class="headerlink" title="リンカスクリプトを編集する"></a>リンカスクリプトを編集する</h2><p>　リンカスクリプトはオブジェクトファイルをリンクするときに使われていて，メモリアドレス周りを決定してるみたいです．内蔵フラッシュはプログラムを置くスペースとしても使われてるんで，コードがさっき決定した場所に置かれてしまうとまずいわけです．コードが突然消えてしまったら実行時に何が起こるかわかりません．そこでリンカスクリプトをいじります．では，f401のmbedでのリンカスクリプトの最初の7行くらいを見てみます．オンラインコンパイラからエクスポートした場合には，<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mbed/TARGET_NUCLEO_F401RE/TOOLCHAIN_GCC_ARM/STM32F401XE.ld</span><br></pre></td></tr></table></figure></p>
+<p>にあると思います．<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">/* Linker script to configure memory regions. */</span><br><span class="line">MEMORY</span><br><span class="line">&#123; </span><br><span class="line">  FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 512K</span><br><span class="line">  RAM (rwx)  : ORIGIN = 0x20000194, LENGTH = 96k - 0x194</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>“FLASH”としてアドレス0x08000000から512KBが確保されてるぽいってのが雰囲気的にわかると思います．ここにプログラムが置かれるんですね．ではこいつのセクタ7の部分を，つまりケツの128KByteを削ぎ落として，その部分に128kByteのアドレス0x08060000から始まる”DATA”を追加してみましょう．<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">/* Linker script to configure memory regions. */</span><br><span class="line">MEMORY</span><br><span class="line">&#123; </span><br><span class="line">  FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 384K</span><br><span class="line">  DATA (rx)  : ORIGIN = 0x08060000, LENGTH = 128K</span><br><span class="line">  RAM (rwx)  : ORIGIN = 0x20000194, LENGTH = 96k - 0x194</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>こんな感じです．384Kってのはもちろん512K-128Kのことです．暗算すると死ぬよ? これでコードがデータと衝突することはなくなりました(プログラムに使える領域が384kByteに減ってしまいましたが…)．</p>
+<h2 id="mbed越しにHALを呼び出して消去＆書き込み"><a href="#mbed越しにHALを呼び出して消去＆書き込み" class="headerlink" title="mbed越しにHALを呼び出して消去＆書き込み"></a>mbed越しにHALを呼び出して消去＆書き込み</h2><p>　フラッシュを消去したり書き込んだりするには，まずはフラッシュをアンロックする必要があります．といっても，HAL_FLASH_Unlock()って関数を呼び出すだけです．そのあとにセクタを丸ごと消去して，1Byteずつ書き込んでやればOKです．当然，アンロックしたのですから，操作が終わったらロックすることを忘れずに．</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> _eraseFlash(<span class="keyword">void</span>)</span><br><span class="line">&#123;</span><br><span class="line">	FLASH_EraseInitTypeDef erase;</span><br><span class="line">	erase.TypeErase = FLASH_TYPEERASE_SECTORS;	<span class="comment">/* セクタを選ぶ */</span></span><br><span class="line">	erase.Sector = FLASH_SECTOR_7;				<span class="comment">/* セクタ7を指定 */</span></span><br><span class="line">	erase.NbSectors = <span class="number">1</span>;		<span class="comment">/* 消すセクタの数．今回は1つだけ */</span></span><br><span class="line">	erase.VoltageRange = FLASH_VOLTAGE_RANGE_3;	<span class="comment">/* 3.3Vで駆動するならこれで */</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">uint32_t</span> pageError = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	HAL_FLASHEx_Erase(&amp;erase, &amp;pageError);	<span class="comment">/* HAL_FLASHExの関数で消去 */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">writeFlash</span><span class="params">(<span class="keyword">uint32_t</span> address, <span class="keyword">uint8_t</span> *data, <span class="keyword">uint32_t</span> size)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	HAL_FLASH_Unlock();		<span class="comment">/* フラッシュをアンロック */</span></span><br><span class="line">	_eraseFlash();			<span class="comment">/* セクタ7を消去 */</span></span><br><span class="line">	<span class="keyword">do</span> &#123;</span><br><span class="line">		<span class="comment">/* 1Byteずつフラッシュに書き込む */</span></span><br><span class="line">		HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, address, *data);</span><br><span class="line">	&#125; <span class="keyword">while</span> (++address, ++data, --size);</span><br><span class="line">	HAL_FLASH_Lock();		<span class="comment">/* フラッシュをロック */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="フラッシュの内容を読み込む"><a href="#フラッシュの内容を読み込む" class="headerlink" title="フラッシュの内容を読み込む"></a>フラッシュの内容を読み込む</h2><p>　読み込みは簡単です．書き込んだアドレスを参照するだけです．具体的には，こんな感じで読めます．<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">*((<span class="keyword">uint8_t</span>*)address)</span><br></pre></td></tr></table></figure></p>
+<p>読み出したい型のポインタ型に強制的にキャストして参照してます．uint8_tのところは読み出したい型で，floatでも何でもいけちゃいます．ただ毎回これってのも面倒なので，関数にしてみます．<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">loadFlash</span><span class="params">(<span class="keyword">uint32_t</span> address, <span class="keyword">uint8_t</span> *data, <span class="keyword">uint32_t</span> size)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="built_in">memcpy</span>(data, (<span class="keyword">uint8_t</span>*)address, size);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>もはやmemcpy()を適当にラップしただけですね．これでスマートに読み込みが行えます．</p>
+<h2 id="複数のデータの保存"><a href="#複数のデータの保存" class="headerlink" title="複数のデータの保存"></a>複数のデータの保存</h2><p>　保存するデータが1つだけなら何も考えずにできるんですが，複数となると管理が面倒です．そこで今回は構造体を書き込んでみることにしましょう．さっき作った関数を使ってみます．<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">	<span class="keyword">int</span>		chino;</span><br><span class="line">	<span class="keyword">float</span>		maya;</span><br><span class="line">	<span class="keyword">uint16_t</span>	megu;</span><br><span class="line">&#125; Chimame;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">const</span> <span class="keyword">uint32_t</span> address = <span class="number">0x8060000</span>;</span><br><span class="line">	Chimame chimame;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* フラッシュから構造体にデータを読み込む */</span></span><br><span class="line">	loadFlash(address, (<span class="keyword">uint8_t</span>*)&amp;chimame, <span class="keyword">sizeof</span>(Chimame));</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 構造体のメンバに変更を加える */</span></span><br><span class="line">	chimame.chino = <span class="number">144</span>;</span><br><span class="line">	chimame.maya = <span class="number">140.0</span>;</span><br><span class="line">	chimame.megu = <span class="number">145</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* フラッシュに構造体のデータを書き込む */</span></span><br><span class="line">	writeFlash(address, (<span class="keyword">uint8_t</span>*)&amp;chimame, <span class="keyword">sizeof</span>(Chimame));</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>起動後にloadFlash()で構造体のデータを読み込んで，変更があった場合にはwriteFlash()で構造体を書き込めばいいんじゃないんでしょうか．一応，別のプログラムを書き込んでもデータはそのままでした．</p>
+<h2 id="まとめ"><a href="#まとめ" class="headerlink" title="まとめ"></a>まとめ</h2><p>　リンカスクリプトをいじって領域を確保してやれば，HALの関数を使って簡単にデータの読み書きができます．構造体を書き込むと管理がとても楽になります．</p>
+
+
+	
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flash/">Flash</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/HAL/">HAL</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Nucleo/">Nucleo</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/f401re/">f401re</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/mbed/">mbed</a></li></ul>
+	
+
+	<a href="https://twitter.com/share?ref_src=twsrc%5Etfw" class="twitter-share-button" data-text=" " data-url="http://umtkm.github.io/2017/12/19/nucleo-f401-flash-struct/" data-show-count="false">Tweet</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+</article>
+		</div>
+		<div class="blog-sidebar">
+			
+<div class="widget-container">
+
+	<div class="widget about">
+	<h4>About</h4>
+	<div class="icon">
+		<!-- icon by css -->
+	</div>
+	<div class="name" >
+		<p>K.Y@Cupteano<br><a href="https://twitter.com/umtkm">@umtkm</a></p>
+	</div>
+	<div class="intro">
+		<p>
+			　ロボットをつくる電気系の高専3年生です．RoboCupJunior Soccer LightWightに出場し，主にロボットのハードウェアと制御を担当してます．<br>
+			<a href="https://github.com/umtkm">GitHub</a> / <a href="https://twitter.com/umtkm">Twitter</a>
+		</p>
+	</div>
+</div>
+
+	<div class="widget category">
+	<h4>Category</h4>
+	<p><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/RCJ/">RCJ</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/RCJ/大会報告/">大会報告</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/マイコン/">マイコン</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/マイコン/STM32/">STM32</a></li></ul></li></ul></p>
+</div>
+
+	
+  <div class="widget tagcloud">
+    <h4>Tag Cloud</h4>
+    <p class="tagcloud">
+      <a href="/tags/Cupteano/" style="font-size: 10px;">Cupteano</a> <a href="/tags/Flash/" style="font-size: 15px;">Flash</a> <a href="/tags/HAL/" style="font-size: 20px;">HAL</a> <a href="/tags/IWDG/" style="font-size: 10px;">IWDG</a> <a href="/tags/Nucleo/" style="font-size: 20px;">Nucleo</a> <a href="/tags/RCJWSL/" style="font-size: 10px;">RCJWSL</a> <a href="/tags/SharoShiko-2-0/" style="font-size: 10px;">SharoShiko 2.0</a> <a href="/tags/f103rb/" style="font-size: 10px;">f103rb</a> <a href="/tags/f401re/" style="font-size: 15px;">f401re</a> <a href="/tags/mbed/" style="font-size: 20px;">mbed</a> <a href="/tags/teanoBOT-2-1/" style="font-size: 10px;">teanoBOT 2.1</a> <a href="/tags/せとうちオープン/" style="font-size: 10px;">せとうちオープン</a>
+    </p>
+  </div>
+
+
+	
+
+  <div class="widget archive">
+    <h4>Archives</h4>
+    <ul class="sidebar-module-list"><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/archives/2018/05/">2018-05</a><span class="sidebar-module-list-count">1</span></li><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/archives/2018/04/">2018-04</a><span class="sidebar-module-list-count">1</span></li><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/archives/2017/12/">2017-12</a><span class="sidebar-module-list-count">2</span></li></ul>
+  </div>
+
+
+
+	
+  <div class="widget recent_posts">
+    <h4>Recents</h4>
+    <ul class="sidebar-module-list">
+      
+        <li>
+          <a href="/2018/05/06/rcj-setouchi-open-2018/">せとうちオープン2018参加しました</a>
+        </li>
+      
+        <li>
+          <a href="/2018/04/07/nucleo-f401-iwdg-mbed/">【F401+mbed】ウォッチドッグタイマでロボットの暴走を防止する</a>
+        </li>
+      
+        <li>
+          <a href="/2017/12/31/nucleo-f103rb-flash-struct/">【Nucleo F103RB+mbed】内蔵フラッシュに構造体を書き込む</a>
+        </li>
+      
+        <li>
+          <a href="/2017/12/19/nucleo-f401-flash-struct/">【Nucleo F401RE】内蔵フラッシュにデータを書き込んでみる（mbed越しに）</a>
+        </li>
+      
+    </ul>
+  </div>
+
+
+</div>
+		</div>
+	</div>
+	<footer>
+	<div class="footer-box">
+		<p><small>&copy; 2018 umtkm</small></p>
+	</div>
+</footer>
+</body>
+</html>

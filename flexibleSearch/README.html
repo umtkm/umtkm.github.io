@@ -1,0 +1,913 @@
+<h1 id="flexibleSearch-js-jQuery-plugin"><a href="#flexibleSearch-js-jQuery-plugin" class="headerlink" title="flexibleSearch.js - jQuery plugin"></a>flexibleSearch.js - jQuery plugin</h1><p>あらかじめ用意したJSONファイルを検索することにより超高速JavaScript検索を実現するjQueryプラグインです。<br><strong>JSONファイルさえ用意できればどのようなサイトにでも導入することができます。</strong></p>
+<p>CMSの種類、静的なHTMLサイト、動的なPHPサイト、スマホサイトなど、様々なシーンでご利用ください。</p>
+<p>なお、Movable Type 6 で使う場合は、Data API にパラメータを渡して検索することもできます。検索は Data API で行い、ページングは flexibleSearch.js の機能を使うという方法が可能になります。</p>
+<h2 id="前バージョンとの違い"><a href="#前バージョンとの違い" class="headerlink" title="前バージョンとの違い"></a>前バージョンとの違い</h2><p>前バージョン（v1系）はURLにハッシュを付け、その検索条件をcookieに保存するなど少し特殊な方法でしたが、本バージョン（v2系）からは通常の検索と同様にURLにパラメータを付けてGETリクエストするような方法で検索します。</p>
+<p>したがって、前バージョンではやりにくかった下記の運用が可能です。</p>
+<ul>
+<li>search.html など検索結果表示ページを用意する通常検索</li>
+<li>検索結果ページをブックマークさせる</li>
+<li>特定の検索条件のページにリンクを貼る</li>
+</ul>
+<h2 id="使い方"><a href="#使い方" class="headerlink" title="使い方"></a>使い方</h2><h3 id="ファイルのアップロードとHTMLの準備"><a href="#ファイルのアップロードとHTMLの準備" class="headerlink" title="ファイルのアップロードとHTMLの準備"></a>ファイルのアップロードとHTMLの準備</h3><p>サーバー上のドメインルートに下記のファイルをアップロードします。アップロード先を変更する場合は、適宜置き換えてください。</p>
+<ul>
+<li>/flexibleSearch/flexibleSearch.js</li>
+<li>/flexibleSearch/flexibleSearch-config.js</li>
+<li>/flexibleSearch/mustache.js</li>
+<li>/flexibleSearch/loading.gif</li>
+</ul>
+<p>mustache.jsはHTMLを簡単に書き出せるJavaScript用のテンプレートエンジンです。</p>
+<ul>
+<li><a href="https://github.com/janl/mustache.js">janl/mustache.js</a></li>
+</ul>
+<h3 id="HTMLの用意"><a href="#HTMLの用意" class="headerlink" title="HTMLの用意"></a>HTMLの用意</h3><p>検索結果を表示するHTMLページを用意し、jQuery、mustache.js、flexibleSearch.js、flexibleSearch-config.jsの順番で読み込みます。</p>
+<p>ここでは以下の様に、サイトのトップページとしてindex.htmlを、検索結果表示ページとしてsearch.htmlを用意します。</p>
+<p>なお、flexibleSearch-config.jsはflexibleSearchを実行するための設定を書くファイルです。flexibleSearch.jsより後ろに位置していれば、scriptタグでHTMLファイルに直接書いても、他のJavaScriptファイルに書いても構いません。</p>
+<h4 id="index-html"><a href="#index-html" class="headerlink" title="index.html"></a>index.html</h4><pre><code>&lt;!doctype html&gt;
+&lt;html lang=&quot;ja&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;flexibleSearch.js&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1&gt;flexibleSearch.js&lt;/h1&gt;
+&lt;h2&gt;あらかじめ用意したJSONファイルを検索することにより超高速JavaScript検索を実現するjQueryプラグインです。&lt;/h2&gt;
+&lt;div id=&quot;search&quot;&gt;&lt;/div&gt;
+
+&lt;script src=&quot;http://code.jquery.com/jquery-1.10.2.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/flexibleSearch/mustache.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/flexibleSearch/flexibleSearch.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/flexibleSearch/flexibleSearch-config.js&quot;&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><h4 id="search-html"><a href="#search-html" class="headerlink" title="search.html"></a>search.html</h4><pre><code>&lt;!doctype html&gt;
+&lt;html lang=&quot;ja&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;flexibleSearch.js&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1&gt;検索結果&lt;/h1&gt;
+&lt;div id=&quot;search&quot;&gt;&lt;/div&gt;
+&lt;div id=&quot;fs-result&quot;&gt;&lt;/div&gt;
+
+&lt;script src=&quot;http://code.jquery.com/jquery-1.10.2.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/flexibleSearch/mustache.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/flexibleSearch/flexibleSearch.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/flexibleSearch/flexibleSearch-config.js&quot;&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><h3 id="JSONファイルの用意"><a href="#JSONファイルの用意" class="headerlink" title="JSONファイルの用意"></a>JSONファイルの用意</h3><p>検索用のJSONファイルを用意します。JSONの書式は以下の通りです。</p>
+<pre><code>{&quot;items&quot;: [
+    {&quot;title&quot;: &quot;タイトル&quot;, &quot;contents&quot;: &quot;コンテンツ&quot;, ...(省略)... },
+    {&quot;title&quot;: &quot;タイトル&quot;, &quot;contents&quot;: &quot;コンテンツ&quot;, ...(省略)... }
+]}
+</code></pre><p>ルートのitemsは必須です。その値に、各記事ごとのオブジェクトが入った配列並べるスタイルになります。</p>
+<p>なお、Movable Typeで記事とウェブページに関するJSONを書き出すときのテンプレートは以下の様になります。カスタムフィールド等も検索対象にする場合は適宜加えてください。</p>
+<h4 id="Movable-TypeのインデックステンプレートでJSONを書き出すテンプレート"><a href="#Movable-TypeのインデックステンプレートでJSONを書き出すテンプレート" class="headerlink" title="Movable TypeのインデックステンプレートでJSONを書き出すテンプレート"></a>Movable TypeのインデックステンプレートでJSONを書き出すテンプレート</h4><pre><code>&lt;mt:Unless name=&quot;compress&quot; regex_replace=&quot;/^\s*\n/gm&quot;,&quot;&quot;&gt;
+&lt;mt:SetVar name=&quot;items&quot;&gt;
+&lt;mt:Entries include_blogs=&quot;all&quot; lastn=&quot;0&quot;&gt;
+&lt;mt:SetVarBlock name=&quot;item{title}&quot;&gt;&lt;mt:EntryTitle&gt;&lt;/mt:SetVarBlock&gt;
+&lt;mt:SetVarBlock name=&quot;item{url}&quot;&gt;&lt;mt:EntryPermalink&gt;&lt;/mt:SetVarBlock&gt;
+&lt;mt:SetVarBlock name=&quot;item{body}&quot;&gt;&lt;mt:EntryBody remove_html=&quot;1&quot; regex_replace=&quot;/\n|\t| |　/g&quot;,&quot;&quot;&gt;&lt;/mt:SetVarBlock&gt;
+&lt;mt:SetVarBlock name=&quot;item{more}&quot;&gt;&lt;mt:EntryMore remove_html=&quot;1&quot; regex_replace=&quot;/\n|\t| |　/g&quot;,&quot;&quot;&gt;&lt;/mt:SetVarBlock&gt;
+&lt;mt:SetVarBlock name=&quot;item{tag}&quot;&gt;,&lt;mt:EntryTags glue=&quot;,&quot;&gt;&lt;mt:TagName regex_replace=&quot;/ |　/g&quot;,&quot;%20&quot;&gt;&lt;/mt:EntryTags&gt;,&lt;/mt:SetVarBlock&gt;
+&lt;mt:SetVarBlock name=&quot;item{category}&quot;&gt;&lt;mt:EntryCategories glue=&quot;,&quot;&gt;&lt;mt:CategoryLabel&gt;&lt;/mt:EntryCategories&gt;&lt;/mt:SetVarBlock&gt;
+&lt;mt:SetVarBlock name=&quot;items&quot; function=&quot;push&quot;&gt;&lt;mt:var name=&quot;item&quot; to_json=&quot;1&quot;&gt;&lt;/mt:SetVarBlock&gt;
+&lt;/mt:Entries&gt;
+&lt;mt:Pages include_blogs=&quot;all&quot; lastn=&quot;0&quot;&gt;
+&lt;mt:SetVarBlock name=&quot;item{title}&quot;&gt;&lt;mt:PageTitle&gt;&lt;/mt:SetVarBlock&gt;
+&lt;mt:SetVarBlock name=&quot;item{url}&quot;&gt;&lt;mt:PagePermalink&gt;&lt;/mt:SetVarBlock&gt;
+&lt;mt:SetVarBlock name=&quot;item{body}&quot;&gt;&lt;mt:PageBody remove_html=&quot;1&quot; regex_replace=&quot;/\n|\t| |　/g&quot;,&quot;&quot;&gt;&lt;/mt:SetVarBlock&gt;
+&lt;mt:SetVarBlock name=&quot;item{more}&quot;&gt;&lt;mt:PageMore remove_html=&quot;1&quot; regex_replace=&quot;/\n|\t| |　&quot;,&quot;&quot;&gt;&lt;/mt:SetVarBlock&gt;
+&lt;mt:SetVarBlock name=&quot;item{tag}&quot;&gt;,&lt;mt:PageTags glue=&quot;,&quot;&gt;&lt;mt:TagName regex_replace=&quot;/ |　/g&quot;,&quot;%20&quot;&gt;&lt;/mt:PageTags&gt;,&lt;/mt:SetVarBlock&gt;
+&lt;mt:SetVarBlock name=&quot;item{folder}&quot;&gt;&lt;mt:PageFolder&gt;&lt;mt:FolderLabel&gt;&lt;/mt:PageFolder&gt;&lt;/mt:SetVarBlock&gt;
+&lt;mt:SetVarBlock name=&quot;items&quot; function=&quot;push&quot;&gt;&lt;mt:var name=&quot;item&quot; to_json=&quot;1&quot;&gt;&lt;/mt:SetVarBlock&gt;
+&lt;/mt:Pages&gt;
+{&quot;items&quot;:[
+&lt;mt:Loop name=&quot;items&quot; glue=&quot;,&quot;&gt;&lt;mt:Var name=&quot;__value__&quot;&gt;&lt;/mt:Loop&gt;
+]}
+&lt;/mt:Unless&gt;
+</code></pre><p>検索対象とするブログを特定する場合は <code>mt:Entries</code> タグや <code>mt:Pages</code> タグの <code>include_blogs</code> モディファイアを調整してください（ <a href="http://www.movabletype.jp/documentation/mt5/design/multiblog/tags.html#blogids">include_blogs</a> ）。</p>
+<h3 id="flexibleSearchの実行"><a href="#flexibleSearchの実行" class="headerlink" title="flexibleSearchの実行"></a>flexibleSearchの実行</h3><p>flexibleSearch-config.jsにオプション等を記述してflexibleSearchを実行します。flexibleSearchはform要素を包含するdiv等のブロック要素に適用します。</p>
+<p>必須のオプションはケースによって異なりますが、searchDataPath、searchFormAction、loadingImgPathは指定しておくと良いでしょう。<br>各オプションの説明は後述します。</p>
+<pre><code>jQuery(function($) {
+    $(&apos;#search&apos;).flexibleSearch({
+        searchDataPath: &quot;/flexibleSearch/search.json&quot;,
+        searchFormAction: &quot;/flexibleSearch/search.html&quot;,
+        loadingImgPath: &quot;/flexibleSearch/loading.gif&quot;,
+        dummy: null
+    });
+});
+</code></pre><p>flexibleSearch-config.jsに書く内容は以下のとおりです。flexibleSearch-config.jsには使用できるオプションがコメントアウトされているので、必要に応じてコメントを外して設定を変更してください。</p>
+<p>dummy: null は不要ですが、最後のカンマを入れたり入れなかったり変更するのが面倒な場合は最終行に入れておくと良いかもしれません :-)</p>
+<p>設定できるオプションは後述します。</p>
+<h2 id="検索結果のソート-version-added-2-2-0"><a href="#検索結果のソート-version-added-2-2-0" class="headerlink" title="検索結果のソート (version added: 2.2.0)"></a><a name="sort"></a>検索結果のソート <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h2><p>検索結果の並び順は、デフォルトの状態だとJSONの並び順に準拠します。</p>
+<p>この並び順を<code>sortBy</code>、<code>sortOrder</code>、<code>sortType</code>の3つのURLパラメータを使って並べ替えることができます。この機能はv2.2.0で追加されました。</p>
+<h3 id="sortBy"><a href="#sortBy" class="headerlink" title="sortBy"></a>sortBy</h3><p>並び替えの基準となるキーを指定します。並べ替える場合は必須です。</p>
+<h3 id="sortOrder"><a href="#sortOrder" class="headerlink" title="sortOrder"></a>sortOrder</h3><p>並び順を<code>ascend</code>（昇順）または<code>descend</code>（降順）で指定します。初期値は<code>descend</code>です。</p>
+<h3 id="sortType"><a href="#sortType" class="headerlink" title="sortType"></a>sortType</h3><p>数値として並び変える場合は<code>numeric</code>を、文字列として並び変える場合は<code>string</code>を指定します。初期値は<code>string</code>です。</p>
+<h2 id="オプション"><a href="#オプション" class="headerlink" title="オプション"></a>オプション</h2><p>指定出来るオプションは以下の通りです。詳細は後述します。<br>なお、下記の説明に出てくる「Data API」とは、Movable Type 6 から実装された <a href="http://www.movabletype.jp/documentation/mt6/developer/movable-type-api.html">Data API</a> のことを指します。Movable Type 以外で flexibleSearch.js を利用する場合は読み飛ばしていただいて構いません。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">オプション名</th>
+<th style="text-align:left">設定値</th>
+<th style="text-align:left">初期値</th>
+<th style="text-align:left">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><a href="#limit">limit</a></td>
+<td style="text-align:left">Number</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">limit オプションを指定すると URL の limit パラメータは無視され、ここで指定した値が常に優先されます。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#searchDataPath">searchDataPath</a></td>
+<td style="text-align:left">String<br>Object</td>
+<td style="text-align:left">“/flexibleSearch/search.json”</td>
+<td style="text-align:left">flexibleSearchで検索対象とするJSONファイルのパスを指定します。文字列で１つ指定する方法と、オブジェクトで複数指定する方法があります。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#searchDataPathPreload">searchDataPathPreload</a></td>
+<td style="text-align:left">String<br>Array<br>Object</td>
+<td style="text-align:left">“/flexibleSearch/search.json”</td>
+<td style="text-align:left">検索実行ページ以外で、検索対象とするJSONファイルをあらかじめ読み込んでおきキャッシュすることができます。文字列で１つ指定する方法と、配列またはオブジェクトで複数指定する方法があります。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#dataApiDataIds">dataApiDataIds</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">MTのData APIを利用するdataIdを指定します。複数ある場合はカンマ区切りで指定します。dataIdとは、searchDataPathオプションをオブジェクトで指定した場合のプロパティ名のことを指します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#dataApiParams">dataApiParams</a></td>
+<td style="text-align:left">Object</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">Data APIを利用する場合に、検索フォームとは別にエンドポイントに渡すパラメータを設定できます。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#cache">cache</a></td>
+<td style="text-align:left">Boolean</td>
+<td style="text-align:left">true</td>
+<td style="text-align:left">JSONファイルをキャッシュするかどうかを指定します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#searchFormCreation">searchFormCreation</a></td>
+<td style="text-align:left">Boolean</td>
+<td style="text-align:left">true</td>
+<td style="text-align:left">検索フォームをJavaScriptで書き出すかどうかを設定します。ここでfalesを設定すれば、HTMLに書かれた静的なフォームを利用することができます。ただし、必須のname項目があります。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#searchFormHTML">searchFormHTML</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">JavaScriptで書き出す検索フォームをHTML文字列で設定する場合に使用します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#searchFormAction">searchFormAction</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">(空文字)</td>
+<td style="text-align:left">form要素のaction属性を指定します。検索結果ページを用意する場合は必ず指定してください。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#searchFormInputType">searchFormInputType</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">“search”</td>
+<td style="text-align:left">form要素のキーワード入力欄のtype属性を指定します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#searchFormInputPlaceholder">searchFormInputPlaceholder</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">“Search words”</td>
+<td style="text-align:left">form要素のキーワード入力欄に入れるplaceholder属性を指定します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#searchFormSubmitBtnText">searchFormSubmitBtnText</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">“Search”</td>
+<td style="text-align:left">form要素の検索実行ボタンのテキストを指定します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#advancedFormObj">advancedFormObj</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">advancedFormObjオプションにオブジェクトを設定することでキーワード入力欄以外のフォーム要素を簡単に作成できます。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#advancedSearchCond">advancedSearchCond</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">“OR”</td>
+<td style="text-align:left">searchパラメータ以外の検索項目の検索条件を”OR”検索か”AND”検索か指定します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#loadingImgPath">loadingImgPath</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">“/flexibleSearch/loading.gif”</td>
+<td style="text-align:left">ローディング画像のパスを指定します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#loadingImgHTML">loadingImgHTML</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">ローディング画像を直接HTMLで指定することができます。このオプションを指定した場合はloadingImgPathオプションの設定は無視されます。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#resultBlockId">resultBlockId</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">“fs-result”</td>
+<td style="text-align:left">検索結果やローディング画像入れるブロック要素のIDを指定します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#resultItemTmpl">resultItemTmpl</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">検索結果を表示するMustacheテンプレートです。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#resultMsgId">resultMsgId</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">検索結果のメッセージを表示する要素のidを指定します。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#resultMsgClassName">resultMsgClassName</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">“fs-result-msg”</td>
+<td style="text-align:left">検索結果のメッセージを表示する要素のclass名を指定します。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#resultMsgTmpl">resultMsgTmpl</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">検索結果のメッセージを表示するMustacheテンプレートです。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#resultMsgInsertMethods">resultMsgInsertMethods</a></td>
+<td style="text-align:left">Array</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">検索結果のメッセージを表示する要素のセレクタと挿入方法を指定します。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#resultMetaTitleTmpl">resultMetaTitleTmpl</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">検索結果ページのmeta title用のMustacheテンプレートです。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#paginateId">paginateId</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">検索結果のページ送りを表示するブロックのIDを指定します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#paginateClassName">paginateClassName</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">“fs-paginate”</td>
+<td style="text-align:left">検索結果のページ送りを表示するブロックのclass名を指定します。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#paginateTmpl">paginateTmpl</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">検索結果が複数ページにわたる場合のページ送りを表示するMustacheテンプレートです。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#paginateCount">paginateCount</a></td>
+<td style="text-align:left">Number</td>
+<td style="text-align:left">10</td>
+<td style="text-align:left">1ページに表示する件数をしていします。この値がlimitパラメータになります。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#hidePageNumber">hidePageNumber</a></td>
+<td style="text-align:left">Boolean</td>
+<td style="text-align:left">false</td>
+<td style="text-align:left">trueを設定するとページ分割のページ番号を非表示にします。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#showTurnPage">showTurnPage</a></td>
+<td style="text-align:left">Boolean</td>
+<td style="text-align:left">true</td>
+<td style="text-align:left">falseを設定するとページ分割の「Prev」「Next」のページ送りを非表示にします。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#prevPageText">prevPageText</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">“Prev”</td>
+<td style="text-align:left">ページ分割の前のページへ送るリンクのテキストを指定します。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#nextPageText">nextPageText</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">“Next”</td>
+<td style="text-align:left">ページ分割の次のページへ送るリンクのテキストを指定します。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#maxPageCount">maxPageCount</a></td>
+<td style="text-align:left">Number</td>
+<td style="text-align:left">10</td>
+<td style="text-align:left">ページ分割時に表示する最大ページ数を指定します。例えば、maxPageCountオプションを10に設定して、検索結果が全部で30ページになったとすると、そのうちの、現在のページを中心にして最大何ページ表示するか、という意味です。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#paginateInsertMethods">paginateInsertMethods</a></td>
+<td style="text-align:left">Array</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">ページ分割ナビゲーションを表示する要素のセレクタと挿入方法を指定します。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#initialParameter">initialParameter</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">flexibleSearch を適用しているページにパラメータが無い場合でも、flexibleSearch を動かすためのパラメータを設定することができます。<br>(Add: v2.3.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#resultMetaTitleRewrite">resultMetaTitleRewrite</a></td>
+<td style="text-align:left">Boolean</td>
+<td style="text-align:left">true</td>
+<td style="text-align:left">メタタイトルの書き換えを無効ににできます。<br>(Add: v2.3.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#submitAction">submitAction</a></td>
+<td style="text-align:left">Function</td>
+<td style="text-align:left">function (paramArray) { return paramArray; }</td>
+<td style="text-align:left">フォームがsubmitされ、ページが遷移する前に呼ばれる関数を設定できます。この関数にはシリアライズされたパラメータの配列paramArrayが渡されます。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#ajaxError">ajaxError</a></td>
+<td style="text-align:left">Function</td>
+<td style="text-align:left">function (jqXHR, textStatus, errorThrown) { window.alert(textStatus); }</td>
+<td style="text-align:left">jQuery.ajaxでエラーが起きたときに呼ばれる関数を設定できます。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#customSearch">customSearch</a></td>
+<td style="text-align:left">Function</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">独自の検索ロジックを追加することができます。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#customSort">customSort</a></td>
+<td style="text-align:left">Function</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left"><code>sortBy</code> パラメータとは別に複雑なソート処理などを加えることができます。<br>(Add: v2.2.3)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#modifyResultJSON">modifyResultJSON</a></td>
+<td style="text-align:left">Function</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">検索結果をHTMLに出力する直前にJSONを加工することができます。<br>(Add: v2.2.0)</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#modifyResultMsgHTML">modifyResultMsgHTML</a></td>
+<td style="text-align:left">Function</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">検索結果メッセージのHTMLを加工することができます。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#modifyResultItemHTML">modifyResultItemHTML</a></td>
+<td style="text-align:left">Function</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">検索結果一覧のHTMLを加工することができます。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#modifyPaginateHTML">modifyPaginateHTML</a></td>
+<td style="text-align:left">Function</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">ページ分割のHTMLを加工することができます。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#resultComplete">resultComplete</a></td>
+<td style="text-align:left">Function</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">検索結果をページのDOMに挿入した後に呼ばれる関数を設定します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#excludeParams">excludeParams</a></td>
+<td style="text-align:left">String</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">パラメータのうち検索から除外する項目をカンマ区切りで指定します。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="limit-version-added-2-2-0"><a href="#limit-version-added-2-2-0" class="headerlink" title="limit (version added: 2.2.0)"></a><a name="limit"></a>limit <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>limitオプションを指定するとURLのlimitパラメータは無視され、ここで指定した値が常に優先されます。このオプションはv2.2.0で追加されました。</p>
+<p>searchFormCreationオプションがtrueのときに書き出されるフォームのlimit値、つまりlimitパラメータの値は <a href="#paginateCount">paginateCount</a> で指定してください。</p>
+<p><strong>設定例</strong></p>
+<pre><code>limit: 10,
+</code></pre><h3 id="searchDataPath"><a href="#searchDataPath" class="headerlink" title="searchDataPath"></a><a name="searchDataPath"></a>searchDataPath</h3><p>flexibleSearchで検索対象とするJSONファイルのパスを指定します。文字列で１つ指定する方法と、オブジェクトで複数指定する方法があります。</p>
+<p><strong>設定例</strong></p>
+<pre><code>loadingImgPath: &quot;/flexibleSearch/loading.gif&quot;,
+
+または
+
+searchDataPath: {
+    static: &quot;/flexibleSearch/search_data.js&quot;,
+    entries: &quot;/mt/mt-data-api.cgi/v1/sites/1/entries&quot;
+},
+</code></pre><p>searchDataPathオプションをオブジェクトで指定した場合は、どのJSONを検索対象とするのかをdataIdパラメータで指定します。</p>
+<p>例えば、上記の例で言えば、下記のようなラジオボタンを設置して検索対象を切り替える方法があります。</p>
+<pre><code>&lt;p&gt;
+    &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;dataId&quot; value=&quot;static&quot;&gt;Search static&lt;/label&gt;
+    &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;dataId&quot; value=&quot;entries&quot;&gt;Search entries&lt;/label&gt;
+&lt;/p&gt;
+</code></pre><p>例えば検索カテゴリを必ず選択させるといった検索方法の場合、カテゴリごとにJSONファイルを用意して、dataIdパラメータで検索対象のJSONを切り替えれば、1つのJSONファイルのファイルサイズを減らすことができます。</p>
+<h3 id="searchDataPathPreload"><a href="#searchDataPathPreload" class="headerlink" title="searchDataPathPreload"></a><a name="searchDataPathPreload"></a>searchDataPathPreload</h3><p>検索実行ページ以外で、検索対象とするJSONファイルをあらかじめ読み込んでおきキャッシュすることができます。文字列で１つ指定する方法と、配列またはオブジェクトで複数指定する方法があります。</p>
+<p><strong>設定例</strong></p>
+<pre><code>loadingImgPath: &quot;/flexibleSearch/loading.gif&quot;,
+
+または
+
+searchDataPath: [
+    &quot;/flexibleSearch/search_data.js&quot;,
+    &quot;/mt/mt-data-api.cgi/v1/sites/1/entries&quot;
+],
+
+または
+
+searchDataPath: {
+    static: &quot;/flexibleSearch/search_data.js&quot;,
+    entries: &quot;/mt/mt-data-api.cgi/v1/sites/1/entries&quot;
+},
+</code></pre><h3 id="dataApiDataIds"><a href="#dataApiDataIds" class="headerlink" title="dataApiDataIds"></a><a name="dataApiDataIds"></a>dataApiDataIds</h3><p>MTのData APIを利用するdataIdを指定します。複数ある場合はカンマ区切りで指定します。dataIdとは、searchDataPathオプションをオブジェクトで指定した場合のプロパティ名のことを指します。</p>
+<p><strong>設定例</strong></p>
+<pre><code>dataApiDataIds: &quot;entries,categories&quot;,
+</code></pre><h3 id="dataApiParams"><a href="#dataApiParams" class="headerlink" title="dataApiParams"></a><a name="dataApiParams"></a>dataApiParams</h3><p>Data APIを利用する場合に、検索フォームとは別にエンドポイントに渡すパラメータを設定できます。</p>
+<p><strong>設定例</strong></p>
+<pre><code>dataApiParams: {
+    fields: &quot;title,keywords&quot;,
+    searchFields: &quot;title,body,keywords&quot;
+},
+</code></pre><h3 id="cache"><a href="#cache" class="headerlink" title="cache"></a><a name="cache"></a>cache</h3><p>JSONファイルをキャッシュするかどうかを指定します。</p>
+<p><strong>設定例</strong></p>
+<pre><code>cache: false,
+</code></pre><h3 id="searchFormCreation"><a href="#searchFormCreation" class="headerlink" title="searchFormCreation"></a><a name="searchFormCreation"></a>searchFormCreation</h3><p>検索フォームをJavaScriptで書き出すかどうかを設定します。ここでfalesを設定すれば、HTMLに書かれた静的なフォームを利用することができます。ただし、以下のname値を持つ要素は必須です。</p>
+<ul>
+<li>search</li>
+<li>offset</li>
+<li>limit（limitオプションを指定した場合は不要）</li>
+</ul>
+<p><strong>設定例</strong></p>
+<pre><code>searchFormCreation: false,
+</code></pre><h3 id="searchFormHTML"><a href="#searchFormHTML" class="headerlink" title="searchFormHTML"></a><a name="searchFormHTML"></a>searchFormHTML</h3><p>JavaScriptで書き出す検索フォームをHTML文字列で設定する場合に使用します。</p>
+<p><strong>設定例</strong></p>
+<pre><code>searchFormHTML: [
+    &apos;&lt;form action=&quot;/search.html&quot; method=&quot;GET&quot;&gt;&apos;,
+        &apos;&lt;input type=&quot;hidden&quot; name=&quot;offset&quot; value=&quot;0&quot;&gt;&apos;,
+        &apos;&lt;input type=&quot;hidden&quot; name=&quot;limit&quot; value=&quot;10&quot;&gt;&apos;,
+        &apos;&lt;input type=&quot;text&quot; name=&quot;search&quot; value=&quot;&quot;&gt;&apos;,
+        &apos;&lt;input type=&quot;radio&quot; name=&quot;category&quot; value=&quot;cat1&quot;&gt;&apos;,
+        &apos;&lt;input type=&quot;radio&quot; name=&quot;category&quot; value=&quot;cat2&quot;&gt;&apos;,
+        &apos;&lt;input type=&quot;submit&quot; value=&quot;Search&quot;&gt;&apos;,
+    &apos;&lt;/form&gt;&apos;
+].join(&quot;&quot;),
+</code></pre><h3 id="searchFormAction"><a href="#searchFormAction" class="headerlink" title="searchFormAction"></a><a name="searchFormAction"></a>searchFormAction</h3><p>form要素のaction属性を指定します。検索結果ページを用意する場合は必ず指定してください。</p>
+<p><strong>設定例</strong></p>
+<pre><code>searchFormAction: &quot;search.html&quot;,
+</code></pre><h3 id="searchFormInputType"><a href="#searchFormInputType" class="headerlink" title="searchFormInputType"></a><a name="searchFormInputType"></a>searchFormInputType</h3><p>form要素のキーワード入力欄のtype属性を指定します。</p>
+<p><strong>設定例</strong></p>
+<pre><code>searchFormInputType: &quot;text&quot;,
+</code></pre><h3 id="searchFormInputPlaceholder"><a href="#searchFormInputPlaceholder" class="headerlink" title="searchFormInputPlaceholder"></a><a name="searchFormInputPlaceholder"></a>searchFormInputPlaceholder</h3><p>form要素のキーワード入力欄に入れるplaceholder属性を指定します。</p>
+<p><strong>設定例</strong></p>
+<pre><code>searchFormInputPlaceholder: &quot;キーワードを入力&quot;,
+</code></pre><h3 id="searchFormSubmitBtnText"><a href="#searchFormSubmitBtnText" class="headerlink" title="searchFormSubmitBtnText"></a><a name="searchFormSubmitBtnText"></a>searchFormSubmitBtnText</h3><p>form要素の検索実行ボタンのテキストを指定します。</p>
+<p><strong>設定例</strong></p>
+<pre><code>searchFormSubmitBtnText: &quot;検索&quot;,
+</code></pre><h3 id="advancedFormObj"><a href="#advancedFormObj" class="headerlink" title="advancedFormObj"></a><a name="advancedFormObj"></a>advancedFormObj</h3><p>searchFormCreationオプションがtrueのとき、advancedFormObjオプションにオブジェクトを設定することでキーワード入力欄以外のフォーム要素を作成できます。</p>
+<p>このオプションでは以下の要素を書き出すことができます。</p>
+<ul>
+<li>input:hidden</li>
+<li>input:text</li>
+<li>input:checkbox</li>
+<li>input:radio</li>
+<li>select</li>
+</ul>
+<p>基本的な設定方法は以下の書式になります。</p>
+<pre><code>advancedFormObj: {
+    要素タイプ: [
+        {属性名: &quot;属性値&quot;, 属性名: &quot;属性値&quot; ... },
+        ...（いくつでも設定できます）
+    ]
+}
+</code></pre><p>属性値を空にするか、属性名の指定をしないものは、その属性自体が書き出されなくなります。</p>
+<p>詳細は下記の個別項目を参照してください。なお、「HTML出力例」は実際には改行なしの1行になります。</p>
+<h4 id="input-hidden要素"><a href="#input-hidden要素" class="headerlink" title="input:hidden要素"></a>input:hidden要素</h4><p><strong>設定例</strong></p>
+<pre><code>advancedFormObj: {
+    hidden: [
+        {id: &quot;id値&quot;, name: &quot;name値&quot;, value: &quot;value値&quot;},
+        ...（いくつでも設定できます）
+    ]
+}
+</code></pre><p><strong>HTML出力例</strong></p>
+<pre><code>&lt;div class=&quot;fs-advanced-hidden&quot; style=&quot;display:none;&quot;&gt;
+    &lt;input type=&quot;hidden&quot; id=&quot;id値&quot; name=&quot;name値&quot; value=&quot;value値&quot;&gt;
+&lt;/div&gt;
+</code></pre><h4 id="input-text要素"><a href="#input-text要素" class="headerlink" title="input:text要素"></a>input:text要素</h4><p><strong>設定例</strong></p>
+<pre><code>advancedFormObj: {
+    text: [
+        {id: &quot;id値&quot;, name: &quot;name値&quot;, value: &quot;value値&quot;, placeholder: &quot;placeholder値&quot;, label: &quot;label値&quot;},
+        {id: &quot;id値&quot;, name: &quot;name値&quot;, value: &quot;value値&quot;, placeholder: &quot;&quot;, label: &quot;&quot;},
+        ...（いくつでも設定できます）
+    ]
+}
+</code></pre><p><strong>HTML出力例</strong></p>
+<pre><code>&lt;div class=&quot;fs-advanced-text&quot;&gt;
+    &lt;label id=&quot;id値-label&quot; for=&quot;name値&quot; class=&quot;fs-text fs-name値&quot;&gt;
+        &lt;input id=&quot;id値&quot; type=&quot;text&quot; name=&quot;name値&quot; value=&quot;value値&quot; placeholder=&quot;placeholder値&quot;&gt;
+        label値
+    &lt;/label&gt;
+    &lt;input id=&quot;id値&quot; type=&quot;text&quot; name=&quot;name値&quot; value=&quot;value値&quot;&gt;
+&lt;/div&gt;
+</code></pre><h4 id="input-checkbox要素"><a href="#input-checkbox要素" class="headerlink" title="input:checkbox要素"></a>input:checkbox要素</h4><p><strong>設定例</strong></p>
+<pre><code>advancedFormObj: {
+    checkbox: [
+        {id: &quot;id値&quot;, name: &quot;name値&quot;, value: &quot;value値&quot;, label: &quot;label値&quot;},
+        ...（いくつでも設定できます）
+    ]
+}
+</code></pre><p><strong>HTML出力例</strong></p>
+<pre><code>&lt;div class=&quot;fs-advanced-checkbox&quot;&gt;
+    &lt;label id=&quot;id値-label&quot; for=&quot;name値&quot; class=&quot;fs-checkbox fs-name値&quot;&gt;
+        &lt;input type=&quot;checkbox&quot; id=&quot;id値&quot; name=&quot;name値&quot; value=&quot;value値&quot;&gt;
+        label値
+    &lt;/label&gt;
+&lt;/div&gt;
+</code></pre><h4 id="input-radio要素"><a href="#input-radio要素" class="headerlink" title="input:radio要素"></a>input:radio要素</h4><p><strong>設定例</strong></p>
+<pre><code>advancedFormObj: {
+    radio: [
+        {id: &quot;id値&quot;, name: &quot;name値&quot;, value: &quot;value値&quot;, label: &quot;label値&quot;},
+        ...（いくつでも設定できます）
+    ]
+}
+</code></pre><p><strong>HTML出力例</strong></p>
+<pre><code>&lt;div class=&quot;fs-advanced-radio&quot;&gt;
+    &lt;label id=&quot;id値-label&quot; for=&quot;name値&quot; class=&quot;fs-radio fs-name値&quot;&gt;
+        &lt;input type=&quot;radio&quot; id=&quot;id値&quot; name=&quot;name値&quot; value=&quot;value値&quot;&gt;
+        label値
+    &lt;/label&gt;
+&lt;/div&gt;
+</code></pre><h4 id="select要素"><a href="#select要素" class="headerlink" title="select要素"></a>select要素</h4><p><strong>設定例</strong></p>
+<pre><code>advancedFormObj: {
+    select: [
+        {id: &quot;id値&quot;, name: &quot;name値&quot;, size: &quot;&quot;, multiple: &quot;&quot;, option: [
+            {label: &quot;選択してください&quot;, value: &quot;&quot;},
+            {label: &quot;opt_label1&quot;, value: &quot;opt_value1&quot;},
+            {label: &quot;opt_label2&quot;, value: &quot;opt_value2&quot;},
+            {label: &quot;opt_label3&quot;, value: &quot;opt_value3&quot;}
+        ]},
+        ...（いくつでも設定できます）
+    ]
+}
+</code></pre><p><strong>HTML出力例</strong></p>
+<pre><code>&lt;div class=&quot;fs-advanced-select&quot;&gt;
+    &lt;select id=&quot;id値&quot; for=&quot;name値&quot; class=&quot;fs-select fs-name値&quot;&gt;
+        &lt;option value=&quot;&quot;&gt;選択してください&lt;/option&gt;
+        &lt;option value=&quot;opt_value1&quot;&gt;opt_label1&lt;/option&gt;
+        &lt;option value=&quot;opt_value2&quot;&gt;opt_label2&lt;/option&gt;
+        &lt;option value=&quot;opt_value3&quot;&gt;opt_label3&lt;/option&gt;
+    &lt;/select&gt;
+&lt;/div&gt;
+</code></pre><p><strong>advancedFormObj全体の設定例</strong></p>
+<pre><code>advancedFormObj: {
+    hidden: [
+        {id: &quot;id値&quot;, name: &quot;name値1&quot;, value: &quot;value値&quot;}
+    ],
+    text: [
+        {id: &quot;id値1&quot;, name: &quot;name値2&quot;, value: &quot;value値1&quot;, placeholder: &quot;placeholder値1&quot;, label: &quot;label値1&quot;},
+        {id: &quot;id値2&quot;, name: &quot;name値3&quot;, value: &quot;value値2&quot;, placeholder: &quot;placeholder値2&quot;, label: &quot;label値2&quot;}
+    ],
+    checkbox: [
+        {id: &quot;id値1&quot;, name: &quot;name値4&quot;, value: &quot;value値1&quot;, label: &quot;label値1&quot;},
+        {id: &quot;id値2&quot;, name: &quot;name値5&quot;, value: &quot;value値2&quot;, label: &quot;label値2&quot;}
+    ],
+    radio: [
+        {id: &quot;id値1&quot;, name: &quot;name値6&quot;, value: &quot;value値1&quot;, label: &quot;label値1&quot;},
+        {id: &quot;id値2&quot;, name: &quot;name値6&quot;, value: &quot;value値2&quot;, label: &quot;label値2&quot;}
+    ],
+    select: [
+        {id: &quot;id値1&quot;, name: &quot;name値7&quot;, size: &quot;&quot;, multiple: &quot;&quot;, option: [
+            {label: &quot;選択してください&quot;, value: &quot;&quot;},
+            {label: &quot;opt_label1&quot;, value: &quot;opt_value1&quot;},
+            {label: &quot;opt_label2&quot;, value: &quot;opt_value2&quot;},
+            {label: &quot;opt_label3&quot;, value: &quot;opt_value3&quot;}
+        ]},
+        {id: &quot;id値2&quot;, name: &quot;name値8&quot;, size: &quot;3&quot;, multiple: &quot;multiple&quot;, option: [
+            {label: &quot;opt_label1&quot;, value: &quot;opt_value1&quot;},
+            {label: &quot;opt_label2&quot;, value: &quot;opt_value2&quot;},
+            {label: &quot;opt_label3&quot;, value: &quot;opt_value3&quot;}
+        ]}
+    ]
+},
+</code></pre><h3 id="advancedSearchCond"><a href="#advancedSearchCond" class="headerlink" title="advancedSearchCond"></a><a name="advancedSearchCond"></a>advancedSearchCond</h3><p>searchパラメータ以外の検索項目の検索条件を”OR”検索か”AND”検索か指定します。</p>
+<p><strong>設定例</strong></p>
+<pre><code>advancedSearchCond: &quot;AND&quot;,
+</code></pre><h3 id="loadingImgPath"><a href="#loadingImgPath" class="headerlink" title="loadingImgPath"></a><a name="loadingImgPath"></a>loadingImgPath</h3><p>ローディング画像のパスを指定します。</p>
+<p><strong>設定例</strong></p>
+<pre><code>loadingImgPath: &quot;/loading.gif&quot;,
+</code></pre><p>loadingImgPathを指定すると、自動的に次のようなHTMLが検索結果表示ブロックの中に書き出されます。<br>なお、検索結果表示ブロックの中身はappendやprependではなくinnerHTMLでまるごと書き換わるので注意してください。</p>
+<pre><code>&lt;span class=&quot;fs-loading&quot;&gt;&lt;/span&gt;
+</code></pre><p>このHTMLを変更する場合は、次のloadingImgHTMLオプションを指定してください。</p>
+<h3 id="loadingImgHTML"><a href="#loadingImgHTML" class="headerlink" title="loadingImgHTML"></a><a name="loadingImgHTML"></a>loadingImgHTML</h3><p>ローディング画像を直接HTMLで指定することができます。このオプションを指定した場合はloadingImgPathオプションの設定は無視されます。</p>
+<p><strong>設定例</strong></p>
+<pre><code>loadingImgHTML: &apos;&lt;img src=&quot;loading.gif&quot; alt=&quot;読み込み中&quot;&gt;&apos;,
+</code></pre><h3 id="resultBlockId"><a href="#resultBlockId" class="headerlink" title="resultBlockId"></a><a name="resultBlockId"></a>resultBlockId</h3><p>検索結果やローディング画像入れるブロック要素のIDを指定します。</p>
+<p><strong>設定例</strong></p>
+<pre><code>resultBlockId: &quot;contents-inner&quot;,
+</code></pre><h3 id="resultItemTmpl"><a href="#resultItemTmpl" class="headerlink" title="resultItemTmpl"></a><a name="resultItemTmpl"></a>resultItemTmpl</h3><p>検索結果を表示するMustacheテンプレートです。このオプションを指定しない場合は、次のテンプレートが使用されます。</p>
+<pre><code>&lt;div id=&quot;fs-result-items&quot;&gt;
+    &lt;ul&gt;
+    {{#items}}
+        &lt;li&gt;{{&amp;title}}&lt;/li&gt;
+    {{/items}}
+    &lt;/ul&gt;
+&lt;/div&gt;
+</code></pre><p>{{#items}}〜{{/items}}で囲まれている部分が検索結果件の数だけループし、その中の{{項目名}}の部分はitemsのプロパティ名を指定します。</p>
+<p>Mustacheテンプレートの書き方は <a href="https://github.com/janl/mustache.js">janl/mustache.js</a> を参照してください。</p>
+<p><strong>設定例</strong></p>
+<pre><code>resultItemTmpl: [
+    &apos;&lt;div id=&quot;&apos; + op.resultBlockId + &apos;-items&quot;&gt;&apos;,
+        &apos;&lt;ul&gt;&apos;,
+        &apos;{{#items}}&apos;,
+            &apos;&lt;li&gt;&lt;a href=&quot;{{permalink}}&quot;&gt;{{&amp;title}}&lt;/a&gt;&lt;/li&gt;&apos;,
+        &apos;{{/items}}&apos;,
+        &apos;&lt;/ul&gt;&apos;,
+    &apos;&lt;/div&gt;&apos;
+].join(&quot;&quot;),
+</code></pre><h3 id="resultMsgId-version-added-2-2-0"><a href="#resultMsgId-version-added-2-2-0" class="headerlink" title="resultMsgId (version added: 2.2.0)"></a><a name="resultMsgId"></a>resultMsgId <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>検索結果のメッセージをデフォルトのテンプレートで利用する場合のdiv要素のid名を指定します。このオプションはv2.2.0で追加されました。</p>
+<p>もしそれ以前のバージョンのデフォルトテンプレートと揃えたい場合は、このオプションに <code>fs-result-msg</code> を指定してください。</p>
+<p><strong>設定例</strong></p>
+<pre><code>resultMsgId: &quot;fs-result-msg&quot;,
+</code></pre><h3 id="resultMsgClassName-version-added-2-2-0"><a href="#resultMsgClassName-version-added-2-2-0" class="headerlink" title="resultMsgClassName (version added: 2.2.0)"></a><a name="resultMsgClassName"></a>resultMsgClassName <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>検索結果のメッセージをデフォルトのテンプレートで利用する場合のdiv要素のclass名を指定します。このオプションはv2.2.0で追加されました。</p>
+<p><strong>設定例</strong></p>
+<pre><code>resultMsgClassName: &quot;fs-result-msg&quot;,
+</code></pre><h3 id="resultMsgTmpl"><a href="#resultMsgTmpl" class="headerlink" title="resultMsgTmpl"></a><a name="resultMsgTmpl"></a>resultMsgTmpl</h3><p>検索結果の上部に表示するメッセージのMustacheテンプレートです。このオプションを指定しない場合は、次のテンプレートが使用されます。</p>
+<pre><code>&lt;div{{#id}} id=&quot;{{id}}&quot;{{/id}}{{#classname}} class=&quot;{{classname}}&quot;{{/classname}}&gt;
+    &lt;p&gt;
+        {{#keywords}}「{{keywords}}」が {{/keywords}}
+        {{#count}}{{count}} 件見つかりました。{{/count}}
+        {{^count}}見つかりませんでした。{{/count}}
+        {{#count}}（{{lastPage}} ページ中 {{currentPage}} ページ目を表示）{{/count}}
+    &lt;/p&gt;
+&lt;/div&gt;
+</code></pre><p>{{項目名}}の部分は適宜該当する項目に置き換わりますので、resultMsgTmplオプションを指定する場合は、上記を参考に{{項目名}}を入れてください。</p>
+<p><strong>設定例</strong></p>
+<pre><code>resultMsgTmpl: [
+    &apos;&lt;div id=&quot;fs-result-msg&quot;&gt;&apos;,
+        &apos;&lt;p&gt;{{#keywords}}「{{keywords}}」が {{/keywords}}{{count}} 件見つかりました。&apos;,
+        &apos;（{{firstPage}}〜{{lastPage}} ページ中 {{currentPage}} ページ目を表示）&lt;/p&gt;&apos;,
+    &apos;&lt;/div&gt;&apos;
+].join(&quot;&quot;),
+</code></pre><p>Mustacheテンプレートの書き方は<a href="https://github.com/janl/mustache.js">janl/mustache.js</a>を参照してください。</p>
+<h3 id="resultMsgInsertMethods-version-added-2-2-0"><a href="#resultMsgInsertMethods-version-added-2-2-0" class="headerlink" title="resultMsgInsertMethods (version added: 2.2.0)"></a><a name="resultMsgInsertMethods"></a>resultMsgInsertMethods <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>検索結果のメッセージを表示する場所を指定します。このオプションはv2.2.0で追加されました。</p>
+<p>このオプションを指定しない場合は、検索結果一覧の上部にメッセージが表示されます。</p>
+<p>このオプションでは、下記の設定例のようにselecterとmethodの2つのキーを持つオブジェクトで指定します。methodに指定出来るのは、jQueryのappend、prependなど、DOMに挿入したりHTMLを書き換えたりするメソッドです。</p>
+<p>下記のようにページの上部と下部など、異なるセレクタで複数箇所に挿入することもできます。</p>
+<p><strong>設定例</strong></p>
+<pre><code>resultMsgInsertMethods: [
+    {
+        &quot;selector&quot;: &quot;#page-title&quot;,
+        &quot;method&quot;: &quot;html&quot;
+    },
+    {
+        &quot;selector&quot;: &quot;div.search-message&quot;,
+        &quot;method&quot;: &quot;append&quot;
+    }
+],
+</code></pre><h3 id="resultMetaTitleTmpl-version-added-2-2-0"><a href="#resultMetaTitleTmpl-version-added-2-2-0" class="headerlink" title="resultMetaTitleTmpl (version added: 2.2.0)"></a><a name="resultMetaTitleTmpl"></a>resultMetaTitleTmpl <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>検索結果ページのmeta title用のMustacheテンプレートです。このオプションを指定しない場合は下記のテンプレートが使用されます（実際には1行になります）。このオプションはv2.2.0で追加されました。</p>
+<pre><code>{{#keywordArray}}{{.}} {{/keywordArray}}
+{{#count}} {{count}}件{{/count}}
+{{#count}} {{currentPage}}/{{lastPage}}{{/count}}
+{{#metaTitle}} | {{metaTitle}}{{/metaTitle}}
+</code></pre><p>このテンプレートで利用している <code>{{#keywordArray}}{{.}} {{/keywordArray}}</code> については、<br>キーワードが複数のときは <code>{{.}}</code> 部分にキーワードが入り、 <code>{{#keywordArray}}</code> と <code>{{/keywordArray}}</code> の内部がキーワード数分繰り返されます。</p>
+<p>また <code>{{#keywords}}{{keywords}}{{/keywords}}</code> とすると、キーワードが複数のときは <code>,</code> でキーワードが区切られたテキストになります。</p>
+<p><strong>設定例</strong></p>
+<pre><code>resultMetaTitleTmpl: &quot;{{#keywordArray}}{{.}} {{/keywordArray}}の検索結果&quot;,
+</code></pre><h3 id="paginateId"><a href="#paginateId" class="headerlink" title="paginateId"></a><a name="paginateId"></a>paginateId</h3><p>検索結果のページ送りを表示するブロックのIDを指定します。</p>
+<p><strong>設定例</strong></p>
+<pre><code>paginateId: &quot;paginate&quot;,
+</code></pre><h3 id="paginateClassName-version-added-2-2-0"><a href="#paginateClassName-version-added-2-2-0" class="headerlink" title="paginateClassName (version added: 2.2.0)"></a><a name="paginateClassName"></a>paginateClassName <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>検索結果のページ送りを表示するブロックのclass名を指定します。このオプションはv2.2.0で追加されました。</p>
+<p><strong>設定例</strong></p>
+<pre><code>paginateClassName: &quot;fs-paginate&quot;,
+</code></pre><h3 id="paginateTmpl"><a href="#paginateTmpl" class="headerlink" title="paginateTmpl"></a><a name="paginateTmpl"></a>paginateTmpl</h3><p>検索結果が複数ページにわたる場合のページ送りを表示するMustacheテンプレートです。このオプションを指定しない場合は、次のテンプレートが使用されます。</p>
+<pre><code>&lt;div{{#id}} id=&quot;{{id}}&quot;{{/id}}{{#classname}} class=&quot;{{classname}}&quot;{{/classname}}&gt;
+    &lt;ul&gt;
+        {{#showTurnPage}}
+        {{#exceptFirst}}
+        &lt;li class=&quot;fs-prev&quot;&gt;&lt;span&gt;&lt;a class=&quot;fs-prev-link fs-turn-page-link&quot; href=&quot;#&quot; title=&quot;{{prevPageText}}&quot;&gt;{{prevPageText}}&lt;/a&gt;&lt;/span&gt;&lt;/li&gt;
+        {{/exceptFirst}}
+        {{/showTurnPage}}
+
+        {{#page}}
+        {{#checkRange}}
+        &lt;li class=&quot;{{current}}&quot;{{#hidePageNumber}} style=&quot;display:none;&quot;{{/hidePageNumber}}&gt;&lt;span&gt;&lt;a class=&quot;fs-page-link {{currentLink}}&quot; href=&quot;#&quot; title=&quot;{{pageNumber}}&quot;&gt;{{pageNumber}}&lt;/a&gt;&lt;/span&gt;&lt;/li&gt;
+        {{/checkRange}}
+        {{/page}}
+
+        {{#showTurnPage}}
+        {{#exceptLast}}
+        &lt;li class=&quot;fs-next&quot;&gt;&lt;span&gt;&lt;a class=&quot;fs-next-link fs-turn-page-link&quot; href=&quot;#&quot; title=&quot;{{nextPageText}}&quot;&gt;{{nextPageText}}&lt;/a&gt;&lt;/span&gt;&lt;/li&gt;
+        {{/exceptLast}}
+        {{/showTurnPage}}
+    &lt;/ul&gt;
+&lt;/div&gt;
+</code></pre><p>{{#page}}〜{{/page}}で囲まれている内部がページ数分ループします。{{current}}はカレントページの時に<code>fs-current</code>が出力されます。{{pageNumber}}がページ番号です。paginateHTMLオプションでHTMLを指定する場合は、上記HTMLと同様に{{項目名}}の各項目を入れてください。</p>
+<p>テンプレートの書き方は<a href="https://github.com/janl/mustache.js">janl/mustache.js</a>を参照してください。</p>
+<p><strong>設定例</strong></p>
+<pre><code>paginateTmpl: [
+    &apos;&lt;div id=&quot;fs-paginate&quot;&gt;&apos;,
+        &apos;&lt;ul&gt;&apos;,
+            &apos;{{#page}}&apos;,
+            &apos;&lt;li{{&amp;current}}&gt;&lt;a href=&quot;#&quot; title=&quot;{{.}}&quot;&gt;{{.}}&lt;/a&gt;&lt;/li&gt;&apos;,
+            &apos;{{/page}}&apos;,
+        &apos;&lt;/ul&gt;&apos;,
+    &apos;&lt;/div&gt;&apos;
+].join(&quot;&quot;),
+</code></pre><h3 id="paginateCount"><a href="#paginateCount" class="headerlink" title="paginateCount"></a><a name="paginateCount"></a>paginateCount</h3><p>1ページに表示する件数をしていします。この値がlimitパラメータになります。</p>
+<p>前述した <a href="#limit">limit</a> オプションに値を設定した場合は、このpaginateCountオプションは無視されます。</p>
+<p><strong>設定例</strong></p>
+<pre><code>paginateCount: 20,
+</code></pre><h3 id="hidePageNumber-version-added-2-2-0"><a href="#hidePageNumber-version-added-2-2-0" class="headerlink" title="hidePageNumber (version added: 2.2.0)"></a><a name="hidePageNumber"></a>hidePageNumber <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>trueを設定するとページ分割のページ番号を非表示にします。このオプションはv2.2.0で追加されました。</p>
+<p><strong>設定例</strong></p>
+<pre><code>hidePageNumber: true,
+</code></pre><h3 id="showTurnPage-version-added-2-2-0"><a href="#showTurnPage-version-added-2-2-0" class="headerlink" title="showTurnPage (version added: 2.2.0)"></a><a name="showTurnPage"></a>showTurnPage <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>falseを設定するとページ分割の「前へ」「次へ」のページ送りを非表示にします。このオプションはv2.2.0で追加されました。</p>
+<p><strong>設定例</strong></p>
+<pre><code>showTurnPage: false,
+</code></pre><h3 id="prevPageText-version-added-2-2-0"><a href="#prevPageText-version-added-2-2-0" class="headerlink" title="prevPageText (version added: 2.2.0)"></a><a name="prevPageText"></a>prevPageText <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>ページ分割の前のページへ送るリンクのテキストを指定します。このオプションはv2.2.0で追加されました。</p>
+<p><strong>設定例</strong></p>
+<pre><code>prevPageText: &quot;前のページへ&quot;,
+</code></pre><h3 id="nextPageText-version-added-2-2-0"><a href="#nextPageText-version-added-2-2-0" class="headerlink" title="nextPageText (version added: 2.2.0)"></a><a name="nextPageText"></a>nextPageText <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>ページ分割の次のページへ送るリンクのテキストを指定します。このオプションはv2.2.0で追加されました。</p>
+<p><strong>設定例</strong></p>
+<pre><code>nextPageText: &quot;Next&quot;,
+</code></pre><h3 id="maxPageCount-version-added-2-2-0"><a href="#maxPageCount-version-added-2-2-0" class="headerlink" title="maxPageCount (version added: 2.2.0)"></a><a name="maxPageCount"></a>maxPageCount <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>ページ分割時に表示する最大ページ数を指定します。このオプションはv2.2.0で追加されました。</p>
+<p>例えば、maxPageCountオプションを10に設定して、検索結果が全部で30ページになったとすると、そのうちの、現在のページを中心にして最大何ページ表示するか、という意味です。</p>
+<p><strong>設定例</strong></p>
+<pre><code>maxPageCount: 5,
+</code></pre><h3 id="paginateInsertMethods-version-added-2-2-0"><a href="#paginateInsertMethods-version-added-2-2-0" class="headerlink" title="paginateInsertMethods (version added: 2.2.0)"></a><a name="paginateInsertMethods"></a>paginateInsertMethods <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>ページ分割ナビゲーションを表示する要素のセレクタと挿入方法を指定します。このオプションはv2.2.0で追加されました。</p>
+<p>このオプションを指定しない場合は、検索結果一覧の下部にナビゲーションが表示されます。</p>
+<p>このオプションでは、下記の設定例のようにselecterとmethodの2つのキーを持つオブジェクトで指定します。methodに指定出来るのは、jQueryのappend、prependなど、DOMに挿入したりHTMLを書き換えたりするメソッドです。</p>
+<p>下記のようにページの上部と下部など、異なるセレクタで複数箇所に挿入することもできます。</p>
+<p><strong>設定例</strong></p>
+<pre><code>paginateInsertMethods: [
+    {
+        &quot;selector&quot;: &quot;#content-header&quot;,
+        &quot;method&quot;: &quot;append&quot;
+    },
+    {
+        &quot;selector&quot;: &quot;div.paginate&quot;,
+        &quot;method&quot;: &quot;html&quot;
+    }
+],
+</code></pre><h3 id="initialParameter-version-added-2-3-0"><a href="#initialParameter-version-added-2-3-0" class="headerlink" title="initialParameter (version added: 2.3.0)"></a><a name="initialParameter"></a>initialParameter <span style="font-size: 0.7em;">(version added: 2.3.0)</span></h3><p>flexibleSearch を適用しているページにパラメータが無い場合でも、flexibleSearch を動かすためのパラメータを設定することができます。</p>
+<p>例えば、通常は <code>search.html</code> のようにパラメータが付いていないと flexibleSearch.js は動きませんが、下記のように <code>initialParameter</code> オプションを設定すると、 <code>search.html</code> は <code>search.html?limit=10&amp;offset=0</code> にアクセスしているのと同様に flexibleSearch を動かすことができます。</p>
+<p><strong>設定例</strong></p>
+<pre><code>initialParameter: &apos;limit=10&amp;offset=0&apos;
+</code></pre><h3 id="resultMetaTitleRewrite-version-added-2-3-0"><a href="#resultMetaTitleRewrite-version-added-2-3-0" class="headerlink" title="resultMetaTitleRewrite (version added: 2.3.0)"></a><a name="resultMetaTitleRewrite"></a>resultMetaTitleRewrite <span style="font-size: 0.7em;">(version added: 2.3.0)</span></h3><p><code>resultMetaTitleRewrite</code> オプションに <code>false</code> を設定すると、flexibleSearch.js によるメタタイトルの書き換えが無効になります。</p>
+<h3 id="submitAction"><a href="#submitAction" class="headerlink" title="submitAction"></a><a name="submitAction"></a>submitAction</h3><p>フォームがsubmitされ、ページが遷移する前に呼ばれる関数を設定できます。この関数にはシリアライズされたパラメータの配列paramArrayが渡されます。</p>
+<p><strong>設定例</strong></p>
+<pre><code>submitAction: function (paramArray) {
+    var dataapi = false, l = paramArray.length;
+    for (var i = 0; i &lt; l; i++) {
+        if (paramArray[i].name === &quot;category&quot; &amp;&amp; paramArray[i].value === &quot;movabletype&quot;) {
+            dataapi = true;
+        }
+    }
+    if (dataapi) {
+        for (var i = 0; i &lt; l; i++) {
+            if (paramArray[i].name === &quot;dataId&quot;) {
+                paramArray[i].value = &quot;entries&quot;;
+            }
+        }
+    }
+    return paramArray;
+},
+</code></pre><h3 id="ajaxError"><a href="#ajaxError" class="headerlink" title="ajaxError"></a><a name="ajaxError"></a>ajaxError</h3><p>jQuery.ajaxでエラーが起きたときに呼ばれる関数を設定できます。</p>
+<p><strong>設定例</strong></p>
+<pre><code>ajaxError: function (jqXHR, textStatus, errorThrown) {
+    window.alert(textStatus);
+},
+</code></pre><h3 id="customSearch-version-added-2-2-0"><a href="#customSearch-version-added-2-2-0" class="headerlink" title="customSearch (version added: 2.2.0)"></a><a name="customSearch"></a>customSearch <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>通常の検索で絞り込まれた検索結果JSONを、独自の検索ロジックでフィルターすることができます。このオプションはv2.2.0で追加されました。</p>
+<p>このオプションに設定した関数に検索結果JSONの1アイテムずつが渡され、この関数でfalseを返すと、そのアイテムは検索結果JSONから削除されます。</p>
+<p>このオプションに設定した関数には下記の2つの引数が渡されます。</p>
+<pre><code>function(item, paramObj){
+  // do something
+}
+</code></pre><ul>
+<li>item : 検索結果JSONから渡される1アイテムのプレーンオブジェクト</li>
+<li>paramObj : パラメータオブジェクト。パラメータの値は<code>paramObj[&quot;キー&quot;]</code>で取り出すことができます。</li>
+</ul>
+<p><strong>設定例</strong></p>
+<pre><code>customSearch: function(item, paramObj){
+    // ageプロパティの値が20以上の場合は検索結果に残す
+    return item.age &gt;= 20;
+},
+</code></pre><h3 id="customSort-version-added-2-2-3"><a href="#customSort-version-added-2-2-3" class="headerlink" title="customSort (version added: 2.2.3)"></a><a name="customSort"></a>customSort <span style="font-size: 0.7em;">(version added: 2.2.3)</span></h3><p>通常の検索と独自の検索ロジックで絞り込まれた JSON に対して処理を加えることができます。 <code>sortBy</code> パラメータとは別に複数条件による複雑なソート処理などを加える場合はこのオプションを利用します。このオプションはv2.2.3で追加されました。</p>
+<p>このオプションで設定した関数には、通常の検索と独自の検索ロジックで絞り込まれた JSON が渡されます。この JSON に処理を加えて、 <code>return</code> で返却します。</p>
+<pre><code>function(json){
+  // do something
+  return json;
+}
+</code></pre><ul>
+<li>json : 通常の検索と独自の検索ロジックで絞り込まれた JSON</li>
+</ul>
+<h3 id="modifyResultJSON-version-added-2-2-0"><a href="#modifyResultJSON-version-added-2-2-0" class="headerlink" title="modifyResultJSON (version added: 2.2.0)"></a><a name="modifyResultJSON"></a>modifyResultJSON <span style="font-size: 0.7em;">(version added: 2.2.0)</span></h3><p>検索結果をHTMLに出力する直前に検索結果JSONを加工することができます。このオプションはv2.2.0で追加されました。</p>
+<p>このオプションに設定した関数に検索結果JSON全体が渡され、この関数で返したJSONが検索結果のHTML出力に使われます。</p>
+<p>このオプションに設定した関数には下記の1つの引数が渡されます。</p>
+<pre><code>function(resultJSON){
+  // do something
+}
+</code></pre><ul>
+<li>resultJSON : 検索結果のHTMLを出力する直前の検索結果JSON</li>
+</ul>
+<p>resultJSONはtotalResultsとitemsのプロパティを持つオブジェクトで、<br><code>resultJSON.totalResults</code>で検索結果総数に、<br><code>resultJSON.items</code>で検索結果のアイテムオブジェクトが並んだ配列にアクセスすることができます。</p>
+<p><strong>設定例</strong></p>
+<pre><code>modifyResultJSON: function(resultJSON){
+    for (var i = 0, l = resultJSON.items.length; i &lt; l; i++) {
+        // do something
+    }
+    return resultJSON;
+},
+</code></pre><h3 id="modifyResultMsgHTML"><a href="#modifyResultMsgHTML" class="headerlink" title="modifyResultMsgHTML"></a><a name="modifyResultMsgHTML"></a>modifyResultMsgHTML</h3><p>検索結果メッセージのHTMLを加工することができます。</p>
+<p>このオプションに設定した関数に検索結果メッセージのHTMLが渡され、この関数で返したHTMLが検索結果メッセージのHTML出力に使われます。</p>
+<p>このオプションに設定した関数には下記の1つの引数が渡されます。</p>
+<pre><code>function(html){
+  // do something
+}
+</code></pre><ul>
+<li>html : 検索結果メッセージのHTML</li>
+</ul>
+<p><strong>設定例</strong></p>
+<pre><code>// 全角数字を半角数字に変換する
+modifyResultMsgHTML: function(html){
+    var zenkaku = {
+        &quot;０&quot;:&quot;0&quot;,
+        &quot;１&quot;:&quot;1&quot;,
+        &quot;２&quot;:&quot;2&quot;,
+        &quot;３&quot;:&quot;3&quot;,
+        &quot;４&quot;:&quot;4&quot;,
+        &quot;５&quot;:&quot;5&quot;,
+        &quot;６&quot;:&quot;6&quot;,
+        &quot;７&quot;:&quot;7&quot;,
+        &quot;８&quot;:&quot;8&quot;,
+        &quot;９&quot;:&quot;9&quot;
+    };
+    html = html.replace(/([０１２３４５６７８９])/g, function(match, p1, offset, string){
+        return zenkaku[p1];
+    });
+    return html;
+},
+</code></pre><h3 id="modifyResultItemHTML"><a href="#modifyResultItemHTML" class="headerlink" title="modifyResultItemHTML"></a><a name="modifyResultItemHTML"></a>modifyResultItemHTML</h3><p>検索結果一覧のHTMLを加工することができます。</p>
+<p>このオプションに設定した関数に検索結果一覧のHTMLが渡され、この関数で返したHTMLが検索結果一覧のHTML出力に使われます。</p>
+<p>このオプションに設定した関数には下記の1つの引数が渡されます。</p>
+<pre><code>function(html){
+  // do something
+}
+</code></pre><ul>
+<li>html : 検索結果一覧のHTML</li>
+</ul>
+<p><strong>設定例</strong></p>
+<pre><code>// URL文字列をリンクにする
+modifyResultItemHTML: function(html){
+    return html.replace(/(https?:\/\/[\w\/:%#\$&amp;\?\(\)~\.=\+\-]+)/gi, &quot;&lt;a href=\&quot;$1\&quot;&gt;$1&lt;/a&gt;&quot;);
+},
+</code></pre><h3 id="modifyPaginateHTML"><a href="#modifyPaginateHTML" class="headerlink" title="modifyPaginateHTML"></a><a name="modifyPaginateHTML"></a>modifyPaginateHTML</h3><p>ページ分割のHTMLを加工することができます。</p>
+<p>このオプションに設定した関数にページ分割のHTMLが渡され、この関数で返したHTMLがページ分割のHTML出力に使われます。</p>
+<p>このオプションに設定した関数には下記の1つの引数が渡されます。</p>
+<pre><code>function(html){
+  // do something
+}
+</code></pre><ul>
+<li>html : ページ分割のHTML</li>
+</ul>
+<p><strong>設定例</strong></p>
+<pre><code>// URL文字列をリンクにする
+modifyPaginateHTML: function(html){
+    // do something
+    return html;
+},
+</code></pre><h3 id="resultComplete"><a href="#resultComplete" class="headerlink" title="resultComplete"></a><a name="resultComplete"></a>resultComplete</h3><p>検索結果をページのDOMに挿入した後に呼ばれる関数を設定します。このオプションに設定した関数の戻り値は特に影響を及ぼしません。直接DOMを操作するなどしてください。</p>
+<p>このオプションに設定した関数には下記の1つの引数が渡されます。</p>
+<pre><code>function(totalResults){
+  // do something
+}
+</code></pre><ul>
+<li>totalResults : 検索結果総数</li>
+</ul>
+<p><strong>設定例</strong></p>
+<pre><code>// URL文字列をリンクにする
+resultComplete: function(totalResults){
+    // メタタイトルと同じ物をog:titleにセットする
+    $(&apos;meta[property=&quot;og:title&quot;]&apos;).attr(&apos;content&apos;, document.title);
+    return;
+},
+</code></pre><h3 id="excludeParams"><a href="#excludeParams" class="headerlink" title="excludeParams"></a><a name="excludeParams"></a>excludeParams</h3><p>パラメータのうち検索から除外する項目をカンマ区切りで指定します。</p>
+<p>excludeParamsにはあらかじめ下記の項目が設定されています。つまり、下記の項目の値は検索には利用できません。</p>
+<ul>
+<li>search</li>
+<li>dataId</li>
+<li>offset</li>
+<li>limit</li>
+<li>sortBy</li>
+<li>sortOrder</li>
+<li>sortType</li>
+</ul>
+<p><strong>設定例</strong></p>
+<pre><code>excludeParams: &quot;tags,prices&quot;,
+</code></pre>
