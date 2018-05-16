@@ -15,7 +15,7 @@
 <meta property="og:image" content="http://umtkm.github.io/2018/05/16/mac-preview-color-size/after.png">
 <meta property="og:image" content="http://umtkm.github.io/2018/05/16/mac-preview-color-size/pixel.png">
 <meta property="og:image" content="http://umtkm.github.io/2018/05/16/mac-preview-color-size/print.png">
-<meta property="og:updated_time" content="2018-05-16T14:03:39.697Z">
+<meta property="og:updated_time" content="2018-05-16T14:28:04.263Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="【macOS】Preview.appで画像の色調反転＆任意のサイズで印刷する">
 <meta name="twitter:description" content="何だか突然オシロスコープの波形を綺麗な色で1[DIV]あたり1[cm]になるように印刷したい，そういった衝動に駆られることもあるでしょう．そんな皆さんのために，macOS標準のPreview.appを使って色調反転及び任意のサイズでの印刷をする方法をまとめます．">
@@ -89,7 +89,7 @@
 <h2 id="環境"><a href="#環境" class="headerlink" title="環境"></a>環境</h2><p>　macOS High Sierra Version 10.13.4 です．古いMacでできるかは確認していませんが多分できると思います．</p>
 <h2 id="色調反転"><a href="#色調反転" class="headerlink" title="色調反転"></a>色調反転</h2><p>　とりあえず画像を開いたら，メニューバーの[ツール] &gt; [カラーを調整…] ([Tools]&gt;[Adjust Color…])を洗濯してカラー調整のウインドウを開きます．そのウインドウの一番上の，白い帯に鉛筆みたいな何かのアイコンが3つほどぶら下がってるところがあるので，ここで色調の反転を行えます．</p>
 <img src="/2018/05/16/mac-preview-color-size/before.png" title="before">
-<p>　ここでは，黒色の背景で，灰色のグリッドが入っていて，黄色または緑の線が描かれている画像を処理するとします．まずは，一番左の黒い鉛筆みたいなアイコンを，左に全体の1/4ぐらい動かします．次に，一番右の白い鉛筆みたいなアイコンを，一番左まで動かします．これで色調反転ができるはずです．一番最初に動かした黒いアイコンを左右に移動することで黄色または緑の線の線，灰色の目盛りの見やすさを調整することができます．見やすく調整しましょう．</p>
+<p>　ここでは，黒色の背景で，灰色のグリッドが入っていて，黄色または緑の線が描かれている画像を処理するとします．まずは，一番左の黒い鉛筆みたいなアイコンを，右に全体の1/4ぐらい動かします．次に，一番右の白い鉛筆みたいなアイコンを，一番左まで動かします．これで色調反転ができるはずです．一番最初に動かした黒いアイコンを左右に移動することで黄色または緑の線の線，灰色の目盛りの見やすさを調整することができます．見やすく調整しましょう．</p>
 <img src="/2018/05/16/mac-preview-color-size/after.png" title="after">
 <h2 id="任意のサイズで印刷"><a href="#任意のサイズで印刷" class="headerlink" title="任意のサイズで印刷"></a>任意のサイズで印刷</h2><p>　色調反転に成功したら次は任意のサイズに変更して印刷しましょう．ここでは，オシロスコープの1[DIV]が1[cm]になるように印刷するものとします．</p>
 <p>　1[DIV]が1[cm]になるようにするためには，1[cm]の中に1[DIV]分のドットを詰め込む必要があります．1[DIV]あたりのドット数を数えるには，Preview.app上でマウスカーソルを用いて1[DIV]の範囲を選択します．僕の場合は25[pixels]でした．つまり，25[pixels/cm]の解像度で印刷すればいいわけです．</p>
