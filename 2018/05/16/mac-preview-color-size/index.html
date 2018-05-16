@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<meta name="description" content="何だか突然オシロスコープの波形を綺麗な色で1[DIV]あたり1[cm]になるように印刷したい，そういった衝動に駆られることもあるでしょう．そんな皆さんのために，macOS標準のPreview.appを使って色調反転及び任意のサイズでの印刷をする方法をまとめます．">
+<meta name="keywords" content="macOS,Preview.app,画像,オシロスコープ">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【macOS】Preview.appで画像の色調反転＆任意のサイズで印刷する">
+<meta property="og:url" content="http://umtkm.github.io/2018/05/16/mac-preview-color-size/index.html">
+<meta property="og:site_name" content="umtkmの忘備録">
+<meta property="og:description" content="何だか突然オシロスコープの波形を綺麗な色で1[DIV]あたり1[cm]になるように印刷したい，そういった衝動に駆られることもあるでしょう．そんな皆さんのために，macOS標準のPreview.appを使って色調反転及び任意のサイズでの印刷をする方法をまとめます．">
+<meta property="og:locale" content="ja">
+<meta property="og:image" content="http://umtkm.github.io/2018/05/16/mac-preview-color-size/before.png">
+<meta property="og:image" content="http://umtkm.github.io/2018/05/16/mac-preview-color-size/after.png">
+<meta property="og:image" content="http://umtkm.github.io/2018/05/16/mac-preview-color-size/pixel.png">
+<meta property="og:image" content="http://umtkm.github.io/2018/05/16/mac-preview-color-size/print.png">
+<meta property="og:updated_time" content="2018-05-16T14:03:39.697Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="【macOS】Preview.appで画像の色調反転＆任意のサイズで印刷する">
+<meta name="twitter:description" content="何だか突然オシロスコープの波形を綺麗な色で1[DIV]あたり1[cm]になるように印刷したい，そういった衝動に駆られることもあるでしょう．そんな皆さんのために，macOS標準のPreview.appを使って色調反転及び任意のサイズでの印刷をする方法をまとめます．">
+<meta name="twitter:image" content="http://umtkm.github.io/2018/05/16/mac-preview-color-size/before.png">
+	<link rel="stylesheet" href="/css/styles.css">
+	
+	<title>【macOS】Preview.appで画像の色調反転＆任意のサイズで印刷する | umtkmの忘備録</title>
+</head>
+<body>
+	<header>
+	<div class="header-box">
+		<h1><a href="/">umtkmの忘備録</a></h1>
+
+		<div id="nav-drawer">
+
+		<input id="nav-checkbox" type="checkbox">
+		<label id="nav-open" for="nav-checkbox"><span></span></label>
+		<label id="nav-cover" for="nav-checkbox"><span></span></label>
+
+		<div id="nav-menu">
+			<div class="nav-menu-title-box">
+				<h1>Menu</h1>
+				<label id="nav-close" for="nav-checkbox"><span></span></label>
+			</div>
+			<!-- flexableSeach.js 使用時，formの上のdivのid属性が"search"だとヘッダの検索窓に送信した文字が残ってしまうため(さらに検索結果ページの検索窓に文字が表示されない)，idをつけないでおく -->
+			<!-- <div id="search" class="search-window"> -->
+			<div class="search-window">
+				<form method="GET" action="/search/index.html">
+					<dl class="search-box">
+					<input type="hidden" name="offset" value="0">
+						<dt>
+							<input type="text" name="search" value="" placeholder="Search..." class="fs-text fs-search">
+						</dt>
+						<dd>
+							<button><span></span></button>
+						</dd>
+					</dl>
+				</form>
+			</div>
+			<ul>
+				<li><a href="/">Home</a></li>
+				<li><a href="/categories">Category</a></li>
+				<li><a href="/tags">Tags</a></li>
+				<li><a href="/archives">Archives</a></li>
+			</ul>
+			<script src="/js/jquery-1.10.2.min.js"></script>
+			<script src="/flexibleSearch/mustache.js"></script>
+			<script src="/flexibleSearch/flexibleSearch.js"></script>
+			<script src="/flexibleSearch/flexibleSearch-config.js"></script>
+		</div>
+
+		</div>
+	</div>
+</header>
+	<div class="container">
+		<div class="blog-main">
+			
+
+
+<ol class="breadcrumb">
+	<li><a href="/">Home</a></li><li><a href="/categories/Mac/">Mac</a></li><li><a href="/categories/Mac/MacTips/">MacTips</a></li><li>【macOS】Preview.appで画像の色調反転＆...</li>
+</ol>
+
+<article>
+
+	<h1>【macOS】Preview.appで画像の色調反転＆任意のサイズで印刷する</h1>
+	<div class="article-date">2018/05/16 23:39</div>
+
+	<p>　何だか突然オシロスコープの波形を綺麗な色で1[DIV]あたり1[cm]になるように印刷したい，そういった衝動に駆られることもあるでしょう．そんな皆さんのために，macOS標準のPreview.appを使って色調反転及び任意のサイズでの印刷をする方法をまとめます．</p>
+<a id="more"></a>
+<h2 id="環境"><a href="#環境" class="headerlink" title="環境"></a>環境</h2><p>　macOS High Sierra Version 10.13.4 です．古いMacでできるかは確認していませんが多分できると思います．</p>
+<h2 id="色調反転"><a href="#色調反転" class="headerlink" title="色調反転"></a>色調反転</h2><p>　とりあえず画像を開いたら，メニューバーの[ツール] &gt; [カラーを調整…] ([Tools]&gt;[Adjust Color…])を洗濯してカラー調整のウインドウを開きます．そのウインドウの一番上の，白い帯に鉛筆みたいな何かのアイコンが3つほどぶら下がってるところがあるので，ここで色調の反転を行えます．</p>
+<img src="/2018/05/16/mac-preview-color-size/before.png" title="before">
+<p>　ここでは，黒色の背景で，灰色のグリッドが入っていて，黄色または緑の線が描かれている画像を処理するとします．まずは，一番左の黒い鉛筆みたいなアイコンを，左に全体の1/4ぐらい動かします．次に，一番右の白い鉛筆みたいなアイコンを，一番左まで動かします．これで色調反転ができるはずです．一番最初に動かした黒いアイコンを左右に移動することで黄色または緑の線の線，灰色の目盛りの見やすさを調整することができます．見やすく調整しましょう．</p>
+<img src="/2018/05/16/mac-preview-color-size/after.png" title="after">
+<h2 id="任意のサイズで印刷"><a href="#任意のサイズで印刷" class="headerlink" title="任意のサイズで印刷"></a>任意のサイズで印刷</h2><p>　色調反転に成功したら次は任意のサイズに変更して印刷しましょう．ここでは，オシロスコープの1[DIV]が1[cm]になるように印刷するものとします．</p>
+<p>　1[DIV]が1[cm]になるようにするためには，1[cm]の中に1[DIV]分のドットを詰め込む必要があります．1[DIV]あたりのドット数を数えるには，Preview.app上でマウスカーソルを用いて1[DIV]の範囲を選択します．僕の場合は25[pixels]でした．つまり，25[pixels/cm]の解像度で印刷すればいいわけです．</p>
+<img src="/2018/05/16/mac-preview-color-size/pixel.png" title="pixel">
+<p>　メニューバーの[ツール] &gt; [サイズを調整…] ([Tools]&gt;[Adjust Size…])を選べば解像度の変更ができます．ここで，解像度の項目の単位を「ピクセル/インチ」を「ピクセル/センチメートル」に変更し，数値欄に”25”を入力します．これで設定完了です．</p>
+<img src="/2018/05/16/mac-preview-color-size/print.png" title="print">
+<p>　最後に印刷です．[ファイル]&gt;[プリント] (または⌘P)を選択し，スケールが100%になっていることを確認して印刷すれば，お望みのものが手に入るでしょう．</p>
+<h2 id="まとめ"><a href="#まとめ" class="headerlink" title="まとめ"></a>まとめ</h2><p>　Macでは標準で入ってるPreview.appで簡単な画像の加工なら素早くできます．みんなMacを買おう．</p>
+
+
+	
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Preview-app/">Preview.app</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/macOS/">macOS</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/オシロスコープ/">オシロスコープ</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/画像/">画像</a></li></ul>
+	
+
+	<a href="https://twitter.com/share?ref_src=twsrc%5Etfw" class="twitter-share-button" data-text=" " data-url="http://umtkm.github.io/2018/05/16/mac-preview-color-size/" data-show-count="false">Tweet</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+</article>
+		</div>
+		<div class="blog-sidebar">
+			
+<div class="widget-container">
+
+	<div class="widget about">
+	<h4>About</h4>
+	<div class="icon">
+		<!-- icon by css -->
+	</div>
+	<div class="name" >
+		<p>K.Y@Cupteano<br><a href="https://twitter.com/umtkm">@umtkm</a></p>
+	</div>
+	<div class="intro">
+		<p>
+			　ロボットをつくる電気系の高専3年生です．RoboCupJunior Soccer LightWightに出場し，主にロボットのハードウェアと制御を担当してます．<br>
+			<a href="https://github.com/umtkm">GitHub</a> / <a href="https://twitter.com/umtkm">Twitter</a>
+		</p>
+	</div>
+</div>
+
+	<div class="widget category">
+	<h4>Category</h4>
+	<p><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/MacTips/">MacTips</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/RCJ/">RCJ</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/RCJ/大会報告/">大会報告</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/マイコン/">マイコン</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/マイコン/STM32/">STM32</a></li></ul></li></ul></p>
+</div>
+
+	
+  <div class="widget tagcloud">
+    <h4>Tag Cloud</h4>
+    <p class="tagcloud">
+      <a href="/tags/Cupteano/" style="font-size: 10px;">Cupteano</a> <a href="/tags/Flash/" style="font-size: 15px;">Flash</a> <a href="/tags/HAL/" style="font-size: 20px;">HAL</a> <a href="/tags/IWDG/" style="font-size: 10px;">IWDG</a> <a href="/tags/Nucleo/" style="font-size: 20px;">Nucleo</a> <a href="/tags/Preview-app/" style="font-size: 10px;">Preview.app</a> <a href="/tags/RCJWSL/" style="font-size: 10px;">RCJWSL</a> <a href="/tags/SharoShiko-2-0/" style="font-size: 10px;">SharoShiko 2.0</a> <a href="/tags/f103rb/" style="font-size: 10px;">f103rb</a> <a href="/tags/f401re/" style="font-size: 15px;">f401re</a> <a href="/tags/macOS/" style="font-size: 10px;">macOS</a> <a href="/tags/mbed/" style="font-size: 20px;">mbed</a> <a href="/tags/teanoBOT-2-1/" style="font-size: 10px;">teanoBOT 2.1</a> <a href="/tags/せとうちオープン/" style="font-size: 10px;">せとうちオープン</a> <a href="/tags/オシロスコープ/" style="font-size: 10px;">オシロスコープ</a> <a href="/tags/画像/" style="font-size: 10px;">画像</a>
+    </p>
+  </div>
+
+
+	
+
+  <div class="widget archive">
+    <h4>Archives</h4>
+    <ul class="sidebar-module-list"><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/archives/2018/05/">2018-05</a><span class="sidebar-module-list-count">2</span></li><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/archives/2018/04/">2018-04</a><span class="sidebar-module-list-count">1</span></li><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/archives/2017/12/">2017-12</a><span class="sidebar-module-list-count">2</span></li></ul>
+  </div>
+
+
+
+	
+  <div class="widget recent_posts">
+    <h4>Recents</h4>
+    <ul class="sidebar-module-list">
+      
+        <li>
+          <a href="/2018/05/16/mac-preview-color-size/">【macOS】Preview.appで画像の色調反転＆任意のサイズで印刷する</a>
+        </li>
+      
+        <li>
+          <a href="/2018/05/06/rcj-setouchi-open-2018/">せとうちオープン2018参加しました</a>
+        </li>
+      
+        <li>
+          <a href="/2018/04/07/nucleo-f401-iwdg-mbed/">【F401+mbed】ウォッチドッグタイマでロボットの暴走を防止する</a>
+        </li>
+      
+        <li>
+          <a href="/2017/12/31/nucleo-f103rb-flash-struct/">【Nucleo F103RB+mbed】内蔵フラッシュに構造体を書き込む</a>
+        </li>
+      
+        <li>
+          <a href="/2017/12/19/nucleo-f401-flash-struct/">【Nucleo F401RE】内蔵フラッシュにデータを書き込んでみる（mbed越しに）</a>
+        </li>
+      
+    </ul>
+  </div>
+
+
+</div>
+		</div>
+	</div>
+	<footer>
+	<div class="footer-box">
+		<p><small>&copy; 2018 umtkm</small></p>
+	</div>
+</footer>
+</body>
+</html>
