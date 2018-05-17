@@ -15,7 +15,7 @@
 <meta property="og:image" content="http://umtkm.github.io/2018/05/16/mac-preview-color-size/after.png">
 <meta property="og:image" content="http://umtkm.github.io/2018/05/16/mac-preview-color-size/pixel.png">
 <meta property="og:image" content="http://umtkm.github.io/2018/05/16/mac-preview-color-size/print.png">
-<meta property="og:updated_time" content="2018-05-16T14:28:04.263Z">
+<meta property="og:updated_time" content="2018-05-17T11:01:54.882Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="【macOS】Preview.appで画像の色調反転＆任意のサイズで印刷する">
 <meta name="twitter:description" content="何だか突然オシロスコープの波形を綺麗な色で1[DIV]あたり1[cm]になるように印刷したい，そういった衝動に駆られることもあるでしょう．そんな皆さんのために，macOS標準のPreview.appを使って色調反転及び任意のサイズでの印刷をする方法をまとめます．">
@@ -94,7 +94,7 @@
 <h2 id="任意のサイズで印刷"><a href="#任意のサイズで印刷" class="headerlink" title="任意のサイズで印刷"></a>任意のサイズで印刷</h2><p>　色調反転に成功したら次は任意のサイズに変更して印刷しましょう．ここでは，オシロスコープの1[DIV]が1[cm]になるように印刷するものとします．</p>
 <p>　1[DIV]が1[cm]になるようにするためには，1[cm]の中に1[DIV]分のドットを詰め込む必要があります．1[DIV]あたりのドット数を数えるには，Preview.app上でマウスカーソルを用いて1[DIV]の範囲を選択します．僕の場合は25[pixels]でした．つまり，25[pixels/cm]の解像度で印刷すればいいわけです．</p>
 <img src="/2018/05/16/mac-preview-color-size/pixel.png" title="pixel">
-<p>　メニューバーの[ツール] &gt; [サイズを調整…] ([Tools]&gt;[Adjust Size…])を選べば解像度の変更ができます．ここで，解像度の項目の単位を「ピクセル/インチ」を「ピクセル/センチメートル」に変更し，数値欄に”25”を入力します．これで設定完了です．</p>
+<p>　メニューバーの[ツール] &gt; [サイズを調整…] ([Tools]&gt;[Adjust Size…])を選べば解像度の変更ができます．ここで，解像度の項目の単位を「ピクセル/インチ」を「ピクセル/cm」に変更し，数値欄に”25”を入力します．また，<strong>幅と高さの単位がピクセル</strong>になっている事を確認します(これが出来てなくて僕は時間を溶かしました…)．これで設定完了です．</p>
 <img src="/2018/05/16/mac-preview-color-size/print.png" title="print">
 <p>　最後に印刷です．[ファイル]&gt;[プリント] (または⌘P)を選択し，スケールが100%になっていることを確認して印刷すれば，お望みのものが手に入るでしょう．</p>
 <h2 id="まとめ"><a href="#まとめ" class="headerlink" title="まとめ"></a>まとめ</h2><p>　Macでは標準で入ってるPreview.appで簡単な画像の加工なら素早くできます．みんなMacを買おう．</p>
