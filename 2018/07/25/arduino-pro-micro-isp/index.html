@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<meta name="description" content="Arduino Pro Micro (ATmega32u4搭載)を用いてISPで他のArduinoに書き込む方法を紹介します．ブートローダーの書き込みにも応用できるでしょう．">
+<meta name="keywords" content="ArduinoProMicro,ATmega32u4,ISP">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【ISP】Arduino Pro MicroでArduinoにプログラムを書き込む">
+<meta property="og:url" content="http://umtkm.github.io/2018/07/25/arduino-pro-micro-isp/index.html">
+<meta property="og:site_name" content="umtkmの忘備録">
+<meta property="og:description" content="Arduino Pro Micro (ATmega32u4搭載)を用いてISPで他のArduinoに書き込む方法を紹介します．ブートローダーの書き込みにも応用できるでしょう．">
+<meta property="og:locale" content="ja">
+<meta property="og:image" content="http://umtkm.github.io/2018/07/25/arduino-pro-micro-isp/pro_micro_to_isp.png">
+<meta property="og:image" content="http://umtkm.github.io/2018/07/25/arduino-pro-micro-isp/connector.jpg">
+<meta property="og:image" content="http://umtkm.github.io/2018/07/25/arduino-pro-micro-isp/jumper.jpg">
+<meta property="og:image" content="http://umtkm.github.io/2018/07/25/arduino-pro-micro-isp/write.png">
+<meta property="og:image" content="http://umtkm.github.io/2018/07/25/arduino-pro-micro-isp/serial.png">
+<meta property="og:updated_time" content="2018-07-25T14:13:31.555Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="【ISP】Arduino Pro MicroでArduinoにプログラムを書き込む">
+<meta name="twitter:description" content="Arduino Pro Micro (ATmega32u4搭載)を用いてISPで他のArduinoに書き込む方法を紹介します．ブートローダーの書き込みにも応用できるでしょう．">
+<meta name="twitter:image" content="http://umtkm.github.io/2018/07/25/arduino-pro-micro-isp/pro_micro_to_isp.png">
+	<link rel="stylesheet" href="/css/styles.css">
+	
+	<title>【ISP】Arduino Pro MicroでArduinoにプログラムを書き込む | umtkmの忘備録</title>
+</head>
+<body>
+	<header>
+	<div class="header-box">
+		<h1><a href="/">umtkmの忘備録</a></h1>
+
+		<div id="nav-drawer">
+
+		<input id="nav-checkbox" type="checkbox">
+		<label id="nav-open" for="nav-checkbox"><span></span></label>
+		<label id="nav-cover" for="nav-checkbox"><span></span></label>
+
+		<div id="nav-menu">
+			<div class="nav-menu-title-box">
+				<h1>Menu</h1>
+				<label id="nav-close" for="nav-checkbox"><span></span></label>
+			</div>
+			<!-- flexableSeach.js 使用時，formの上のdivのid属性が"search"だとヘッダの検索窓に送信した文字が残ってしまうため(さらに検索結果ページの検索窓に文字が表示されない)，idをつけないでおく -->
+			<!-- <div id="search" class="search-window"> -->
+			<div class="search-window">
+				<form method="GET" action="/search/index.html">
+					<dl class="search-box">
+					<input type="hidden" name="offset" value="0">
+						<dt>
+							<input type="text" name="search" value="" placeholder="Search..." class="fs-text fs-search">
+						</dt>
+						<dd>
+							<button><span></span></button>
+						</dd>
+					</dl>
+				</form>
+			</div>
+			<ul>
+				<li><a href="/">Home</a></li>
+				<li><a href="/categories">Category</a></li>
+				<li><a href="/tags">Tags</a></li>
+				<li><a href="/archives">Archives</a></li>
+			</ul>
+			<script src="/js/jquery-1.10.2.min.js"></script>
+			<script src="/flexibleSearch/mustache.js"></script>
+			<script src="/flexibleSearch/flexibleSearch.js"></script>
+			<script src="/flexibleSearch/flexibleSearch-config.js"></script>
+		</div>
+
+		</div>
+	</div>
+</header>
+	<div class="container">
+		<div class="blog-main">
+			
+
+
+<ol class="breadcrumb">
+	<li><a href="/">Home</a></li><li><a href="/categories/マイコン/">マイコン</a></li><li><a href="/categories/マイコン/Arduino/">Arduino</a></li><li>【ISP】Arduino Pro MicroでArdu...</li>
+</ol>
+
+<article>
+
+	<h1>【ISP】Arduino Pro MicroでArduinoにプログラムを書き込む</h1>
+	<div class="article-date">2018/07/25 23:57</div>
+
+	<p>　Arduino Pro Micro (ATmega32u4搭載)を用いてISPで他のArduinoに書き込む方法を紹介します．ブートローダーの書き込みにも応用できるでしょう．</p>
+<a id="more"></a>
+<h2 id="環境"><a href="#環境" class="headerlink" title="環境"></a>環境</h2><ul>
+<li>macOS</li>
+<li>Arduino IDE 1.8.4</li>
+</ul>
+<h2 id="用いるプログラム"><a href="#用いるプログラム" class="headerlink" title="用いるプログラム"></a>用いるプログラム</h2><p>　Arduino IDE に付属するサンプルプログラム”Arduino ISP”は，ProMicroの場合ピン番号の不一致のため動作しません．そこで，このプログラムを改変して”ArduinoProMicroISP”を作成しました．ISP機能に加え，printfデバッグ等のためのシリアル通信バイパス機能も追加してあります(後述)．</p>
+<p><a href="https://github.com/umtkm/ArduinoProMicroISP" target="_blank" rel="noopener">https://github.com/umtkm/ArduinoProMicroISP</a></p>
+<p>　git clone あるいは Download して手元に置いておいてください．README.mdには雑な使い方の説明が書かれています，それでわかるのならそちらを参照すれば良いでしょう．この記事では画像を交えてわかりやすく説明しようと思います．</p>
+<h2 id="Pro-MicroのISP化"><a href="#Pro-MicroのISP化" class="headerlink" title="Pro MicroのISP化"></a>Pro MicroのISP化</h2><p>　まずはPro MicroとPCを，USBケーブルで接続します．次に，先ほど手元に落としてもらったものから，”ArduinoProMicroISP.ino”をArduino IDEで開いてください．書き込み用の設定は以下のようにします．</p>
+<ul>
+<li>メニューバーの [ツール] &gt; [ボード] で”Arduino Leonardo”を選択</li>
+<li>メニューバーの [ツール] &gt; [シリアルポート]でPro Microが接続されたポートを選択</li>
+</ul>
+<img src="/2018/07/25/arduino-pro-micro-isp/pro_micro_to_isp.png" title="ISP化時の設定">
+<p>通常通りPro Microに書き込みを行うときと特に変わりません．あとは，メニューバーの [スケッチ] &gt; [マイコンボードに書き込む] (あるいは⌘U)を押して書き込みましょう．これでISP化は完了です．簡単ですね!</p>
+<h2 id="Pro-MicroとターゲットのArduinoを接続する"><a href="#Pro-MicroとターゲットのArduinoを接続する" class="headerlink" title="Pro MicroとターゲットのArduinoを接続する"></a>Pro MicroとターゲットのArduinoを接続する</h2><p>　書き込みを行うには，当然ISP化したProMicroと書き込み対象のArduino(以下，ターゲット)を接続する必要があります．ISPでの書き込みですから，ターゲットのICSP端子(6ピン)と結線します．<br><img src="/2018/07/25/arduino-pro-micro-isp/connector.jpg" title="ProMicroのピン配置とターゲットのICSPの配置"><br>出典<a href="https://tinkersphere.com/boards/720-pro-micro-5v-16mhz-arduino-compatible-atmega32u4-breakout.html" target="_blank" rel="noopener">1</a>, <a href="http://www.arduinolab.net/in-circuit-system-programming-icsp-using-usbtinyisp-and-arduino-ide/" target="_blank" rel="noopener">2</a></p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">ProMicro</th>
+<th style="text-align:center"></th>
+<th style="text-align:center">ターゲット</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">VCC</td>
+<td style="text-align:center">-&gt;</td>
+<td style="text-align:center">VCC</td>
+</tr>
+<tr>
+<td style="text-align:center">GND</td>
+<td style="text-align:center">-&gt;</td>
+<td style="text-align:center">GND</td>
+</tr>
+<tr>
+<td style="text-align:center">16</td>
+<td style="text-align:center">-&gt;</td>
+<td style="text-align:center">MOSI</td>
+</tr>
+<tr>
+<td style="text-align:center">14</td>
+<td style="text-align:center">-&gt;</td>
+<td style="text-align:center">MISO</td>
+</tr>
+<tr>
+<td style="text-align:center">15</td>
+<td style="text-align:center">-&gt;</td>
+<td style="text-align:center">SCK</td>
+</tr>
+<tr>
+<td style="text-align:center">10</td>
+<td style="text-align:center">-&gt;</td>
+<td style="text-align:center">RST</td>
+</tr>
+</tbody>
+</table>
+<p>また，<strong>ジャンパピン等を用いて，ProMicroの8番ピンと9番ピンを短絡(接続)</strong>してください．これは今回用いるプログラム”ArduinoProMicroISP”の独自仕様で，短絡した状態にするとISPによる書き込みが可能になります．<br><img src="/2018/07/25/arduino-pro-micro-isp/jumper.jpg" title="ジャンパピン"></p>
+<p>シリアル通信のバイパス機能を使いたい場合は次も結線してください．ProMicro側は固定ですが，ターゲット側はシリアル通信(UART)が使えるところなら自由に選択していただいて構いません．SoftwareSerialでもOKでしょう．</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">ProMicro</th>
+<th style="text-align:center"></th>
+<th style="text-align:center">ターゲット</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">TX    (pin 1)</td>
+<td style="text-align:center">-&gt;</td>
+<td style="text-align:center">RX</td>
+</tr>
+<tr>
+<td style="text-align:center">RX    (pin 0)</td>
+<td style="text-align:center">-&gt;</td>
+<td style="text-align:center">TX</td>
+</tr>
+</tbody>
+</table>
+<p>これにて結線は完了です．</p>
+<h2 id="Pro-MicroからターゲットのArduinoに書き込む"><a href="#Pro-MicroからターゲットのArduinoに書き込む" class="headerlink" title="Pro MicroからターゲットのArduinoに書き込む"></a>Pro MicroからターゲットのArduinoに書き込む</h2><p>　さあ，準備は整いました．早速ターゲットに書き込みましょう! まずは</p>
+<ol>
+<li>PCとISP化したProMicroが接続されているか</li>
+<li>ProMicroとターゲットの接続が行われているか</li>
+<li>ジャンパピンで8番ピンと9番ピンを短絡したか</li>
+</ol>
+<p>を確認しましょう．</p>
+<p>　確認ができ，書き込みたいプログラムを開いたら，書き込み用の設定を次のように行います．</p>
+<ul>
+<li>メニューバーの [ツール] &gt; [ボード] でターゲットのボードを選択 (ex: Arduino Mega)</li>
+<li>メニューバーの [ツール] &gt; [シリアルポート] で <strong>Pro Microが接続されたポートを選択</strong></li>
+<li>メニューバーの [ツール] &gt; <strong>[書込装置]</strong> で <strong>“Arduino as ISP”</strong> を選択</li>
+</ul>
+<img src="/2018/07/25/arduino-pro-micro-isp/write.png" title="他Arduinoに書き込む設定">
+<p>こんな感じでしょうか．これができたら，メニューバーの [ツール] &gt; <strong>[書込装置を使って書き込み]</strong> (または”shift+⌘+U”)で書き込みを行うことができます．通常の書き込みでは書き込むことができないので注意してください．</p>
+<h2 id="シリアル通信バイパス機能を使う"><a href="#シリアル通信バイパス機能を使う" class="headerlink" title="シリアル通信バイパス機能を使う"></a>シリアル通信バイパス機能を使う</h2><p>　普通のArduinoであれば何も考えずにPCとシリアル通信できますが，ISP経由で書き込む際にはそれができません．printfデバッグとかできないのは多分不便ですよね．そこで，今回公開したプログラムにはシリアル通信のバイパス機能をもたせました．デフォルトでは，115200 bps の速度で通信を行うことができます．</p>
+<p>　この機能を有効化することは簡単です．8番ピンと9番ピンを短絡させているジャンパピンを取り除けば，バイパス機能が有効化されます．有効化すれば，普通のArduinoと同様にシリアルモニタでの受信/送信が可能となります．ジャンパピンを元に戻すと無効化され，再びターゲットに書き込みができるようになります．</p>
+<h3 id="バイパス機能のサンプル"><a href="#バイパス機能のサンプル" class="headerlink" title="バイパス機能のサンプル"></a>バイパス機能のサンプル</h3><p>　シリアル通信バイパス機能の簡単なデモです．Arduino Megaを用いてやってみましたが，多分UNOとかでもできます．シリアルモニタ上部から打ち込んだ文字が返ってくることが確認できます．</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">setup</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  Serial.begin(<span class="number">115200</span>);  </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">loop</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (Serial.available()) &#123;</span><br><span class="line">		Serial.print(<span class="string">"Detected: "</span>);</span><br><span class="line">		Serial.println((<span class="keyword">char</span>)Serial.read());</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<img src="/2018/07/25/arduino-pro-micro-isp/serial.png" title="パイパス機能のシリアルモニタによる確認">
+<h2 id="まとめ"><a href="#まとめ" class="headerlink" title="まとめ"></a>まとめ</h2><p>　一度書き込みができさえすれば，以降はその手順で簡単に書き込んだり，シリアル通信を覗いたりできます．USB経由での書き込みが不可能な場合，この方法を試してみてください．</p>
+
+
+	
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/ATmega32u4/">ATmega32u4</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/ArduinoProMicro/">ArduinoProMicro</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/ISP/">ISP</a></li></ul>
+	
+
+	<a href="https://twitter.com/share?ref_src=twsrc%5Etfw" class="twitter-share-button" data-text=" " data-url="http://umtkm.github.io/2018/07/25/arduino-pro-micro-isp/" data-show-count="false">Tweet</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+</article>
+		</div>
+		<div class="blog-sidebar">
+			
+<div class="widget-container">
+
+	<div class="widget about">
+	<h4>About</h4>
+	<div class="icon">
+		<!-- icon by css -->
+	</div>
+	<div class="name" >
+		<p>K.Y@Cupteano<br><a href="https://twitter.com/umtkm">@umtkm</a></p>
+	</div>
+	<div class="intro">
+		<p>
+			　ロボットをつくる電気系の高専3年生です．RoboCupJunior Soccer LightWightに出場し，主にロボットのハードウェアと制御を担当してます．<br>
+			<a href="https://github.com/umtkm">GitHub</a> / <a href="https://twitter.com/umtkm">Twitter</a>
+		</p>
+	</div>
+</div>
+
+	<div class="widget category">
+	<h4>Category</h4>
+	<p><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/MacTips/">MacTips</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/RCJ/">RCJ</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/RCJ/大会報告/">大会報告</a></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/マイコン/">マイコン</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/マイコン/Arduino/">Arduino</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/マイコン/STM32/">STM32</a></li></ul></li></ul></p>
+</div>
+
+	
+  <div class="widget tagcloud">
+    <h4>Tag Cloud</h4>
+    <p class="tagcloud">
+      <a href="/tags/ATmega32u4/" style="font-size: 10px;">ATmega32u4</a> <a href="/tags/ArduinoProMicro/" style="font-size: 10px;">ArduinoProMicro</a> <a href="/tags/Cupteano/" style="font-size: 10px;">Cupteano</a> <a href="/tags/Flash/" style="font-size: 15px;">Flash</a> <a href="/tags/HAL/" style="font-size: 20px;">HAL</a> <a href="/tags/ISP/" style="font-size: 10px;">ISP</a> <a href="/tags/IWDG/" style="font-size: 10px;">IWDG</a> <a href="/tags/Nucleo/" style="font-size: 20px;">Nucleo</a> <a href="/tags/Preview-app/" style="font-size: 10px;">Preview.app</a> <a href="/tags/RCJWSL/" style="font-size: 10px;">RCJWSL</a> <a href="/tags/SharoShiko-2-0/" style="font-size: 10px;">SharoShiko 2.0</a> <a href="/tags/f103rb/" style="font-size: 10px;">f103rb</a> <a href="/tags/f401re/" style="font-size: 15px;">f401re</a> <a href="/tags/macOS/" style="font-size: 10px;">macOS</a> <a href="/tags/mbed/" style="font-size: 20px;">mbed</a> <a href="/tags/teanoBOT-2-1/" style="font-size: 10px;">teanoBOT 2.1</a> <a href="/tags/せとうちオープン/" style="font-size: 10px;">せとうちオープン</a> <a href="/tags/オシロスコープ/" style="font-size: 10px;">オシロスコープ</a> <a href="/tags/画像/" style="font-size: 10px;">画像</a>
+    </p>
+  </div>
+
+
+	
+
+  <div class="widget archive">
+    <h4>Archives</h4>
+    <ul class="sidebar-module-list"><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/archives/2018/07/">2018-07</a><span class="sidebar-module-list-count">1</span></li><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/archives/2018/05/">2018-05</a><span class="sidebar-module-list-count">2</span></li><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/archives/2018/04/">2018-04</a><span class="sidebar-module-list-count">1</span></li><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/archives/2017/12/">2017-12</a><span class="sidebar-module-list-count">2</span></li></ul>
+  </div>
+
+
+
+	
+  <div class="widget recent_posts">
+    <h4>Recents</h4>
+    <ul class="sidebar-module-list">
+      
+        <li>
+          <a href="/2018/07/25/arduino-pro-micro-isp/">【ISP】Arduino Pro MicroでArduinoにプログラムを書き込む</a>
+        </li>
+      
+        <li>
+          <a href="/2018/05/16/mac-preview-color-size/">【macOS】Preview.appで画像の色調反転＆任意のサイズで印刷する</a>
+        </li>
+      
+        <li>
+          <a href="/2018/05/06/rcj-setouchi-open-2018/">せとうちオープン2018参加しました</a>
+        </li>
+      
+        <li>
+          <a href="/2018/04/07/nucleo-f401-iwdg-mbed/">【F401+mbed】ウォッチドッグタイマでロボットの暴走を防止する</a>
+        </li>
+      
+        <li>
+          <a href="/2017/12/31/nucleo-f103rb-flash-struct/">【Nucleo F103RB+mbed】内蔵フラッシュに構造体を書き込む</a>
+        </li>
+      
+    </ul>
+  </div>
+
+
+</div>
+		</div>
+	</div>
+	<footer>
+	<div class="footer-box">
+		<p><small>&copy; 2018 umtkm</small></p>
+	</div>
+</footer>
+</body>
+</html>

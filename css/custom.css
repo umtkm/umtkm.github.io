@@ -21,6 +21,10 @@ body {
   color: #444;
 }
 
+strong {
+  font-weight: bold;
+}
+
 a {
   color: #6495ed;
   text-decoration: none;
@@ -177,6 +181,36 @@ article .article-date {
 .category-list-count:before,.tag-list-count:before{content:"(";}
 .category-list-count:after,.tag-list-count:after{content: ")";}
 
+
+/* 表のスタイル */
+
+table {
+  max-width: 600px;
+  min-width: 200px;
+  border: none;
+  -webkit-border-horizontal-spacing: 0;
+  -webkit-border-vertical-spacing: 0;
+  margin: 0px auto;
+}
+
+table th, table td {
+  border: none;
+  padding: 5px;
+}
+
+th {
+  padding: 7px;
+  font-size: 1.1em;
+  background: #eee;
+}
+
+tr {
+  font-size:1.05em ;
+}
+
+tr:nth-child(even) {
+  background: #eee;
+}
 
 /* ウィンドウ幅が0〜969pxの場合に適用するCSS */
 @media screen and ( max-width:969px )
