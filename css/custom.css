@@ -213,7 +213,6 @@ tr:nth-child(even) {
 }
 
 
-
 /* ウィンドウ幅が0〜969pxの場合に適用するCSS */
 @media screen and ( max-width:969px )
 {
@@ -226,10 +225,11 @@ tr:nth-child(even) {
     width: auto;
   }
 
-
   article h1 {
     font-size: 200%;
     word-break: break-all;
   }
+
+
 
 }

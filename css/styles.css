@@ -386,7 +386,6 @@ tr:nth-child(even) {
 }
 
 
-
 /* ウィンドウ幅が0〜969pxの場合に適用するCSS */
 @media screen and ( max-width:969px )
 {
@@ -399,11 +398,12 @@ tr:nth-child(even) {
     width: auto;
   }
 
-
   article h1 {
     font-size: 200%;
     word-break: break-all;
   }
+
+
 
 }
 /** Highlight.js Styles (Syntax Highlighting) */
@@ -982,3 +982,30 @@ dl.search-box dd button span:before{
 
 }
 
+
+@media screen and (max-width: 669px) {
+
+.MJXc-display {
+  /* 数式がはみ出る場合にスクロールできるようにする */
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.mjx-full-width .mjx-box {
+  /* 幅を調整 */
+  width: auto!important;
+  /* 左寄せ */
+  text-align: left!important;
+}
+
+.mjx-mtable {
+  /* 数式幅を最小限にする */
+  min-width: 0px!important;
+}
+
+.mjx-itable {
+  /* \tag{}使用時，テキストが数式に被らないようにする */
+  margin-left: 0em!important;
+}
+
+}
