@@ -182,7 +182,7 @@
   margin: 0;
   padding: 0;
   font-weight: normal;
-  line-height: 100%;
+  /*line-height: 100%;*/
 }
 
 
@@ -384,6 +384,8 @@ tr {
 tr:nth-child(even) {
   background: #eee;
 }
+
+
 
 /* ウィンドウ幅が0〜969pxの場合に適用するCSS */
 @media screen and ( max-width:969px )
